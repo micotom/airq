@@ -24,6 +24,7 @@ class RxPermissionListener : PermissionListener {
     }
 
     override fun onPermissionRationaleShouldBeShown(permission: PermissionRequest?, token: PermissionToken?) {
+        Timber.w("need to rationale not covered ...")
     }
 
     override fun onPermissionDenied(response: PermissionDeniedResponse?) {

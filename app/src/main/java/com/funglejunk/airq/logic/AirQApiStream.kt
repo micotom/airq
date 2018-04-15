@@ -23,7 +23,7 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                     private val permissionHelper: PermissionHelperInterface,
                     private val networkHelper: NetworkHelper,
                     private val locationProvider: LocationProvider,
-                    private val geocoder: Geocoder,
+                    private val geoCoder: Geocoder,
                     private val airNowClient: AirNowClientInterface) {
 
     data class Result<V : Any>(val info: String, private val success: Boolean, val content: V) {
@@ -42,7 +42,8 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
         }
     }
 
-    fun work(): Observable<Result<*>> {
+    fun start(): Observable<Result<*>> {
+        Timber.d("starting stream ...")
         return Single.fromCallable { permissionHelper.check() }
                 .flatMapObservable {
                     permissionListener.listen()
@@ -75,7 +76,7 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                 .map {
                     it.map(Extensions.String.Empty) {
                         val location = it.content as Location
-                        val addressOption = geocoder.resolve(location)
+                        val addressOption = geoCoder.resolve(location)
                         addressOption.fold(
                                 { Result("Cannot resolve address", false,
                                         Extensions.String.Empty) },

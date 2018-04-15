@@ -11,21 +11,25 @@ import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 
 class MainActivityPresenter(private val activity: MainActivityView,
-                            private val permissionListener: RxPermissionListener,
-                            private val permissionHelper: PermissionHelperInterface,
-                            private val networkHelper: NetworkHelper,
-                            private val locationProvider: LocationProvider,
-                            private val geocoder: Geocoder,
-                            private val airNowClient: AirNowClientInterface) :
+                            permissionListener: RxPermissionListener,
+                            permissionHelper: PermissionHelperInterface,
+                            networkHelper: NetworkHelper,
+                            locationProvider: LocationProvider,
+                            geoCoder: Geocoder,
+                            airNowClient: AirNowClientInterface) :
         MainActivityPresenterInterface {
 
     private var apiSubscription: Disposable? = null
+    private val stream: AirQApiStream = AirQApiStream(
+            permissionListener,
+            permissionHelper,
+            networkHelper,
+            locationProvider,
+            geoCoder,
+            airNowClient)
 
     override fun viewStarted() {
-        apiSubscription =
-                AirQApiStream(permissionListener, permissionHelper, networkHelper, locationProvider,
-                        geocoder, airNowClient)
-                .work()
+        apiSubscription = stream.start()
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
                 .subscribe {

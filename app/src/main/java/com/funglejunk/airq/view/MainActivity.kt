@@ -1,31 +1,21 @@
 package com.funglejunk.airq.view
 
-import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.v7.app.AppCompatActivity
 import com.funglejunk.airq.R
-import com.funglejunk.airq.logic.MainActivityPresenter
 import com.funglejunk.airq.logic.MainActivityPresenterInterface
 import com.funglejunk.airq.logic.MainActivityView
-import com.funglejunk.airq.logic.net.AndroidNetworkHelper
-import com.funglejunk.airq.logic.location.AndroidGeocoder
-import com.funglejunk.airq.logic.location.AndroidLocationProvider
-import com.funglejunk.airq.logic.location.permission.AndroidPermissionHelper
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
-import com.funglejunk.airq.logic.net.AirNowClient
 import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_main.*
+import org.koin.android.ext.android.inject
 
 class MainActivity : AppCompatActivity(), MainActivityView {
 
-    private val presenter: MainActivityPresenterInterface
-
-    init {
-        val permissionListener = RxPermissionListener()
-        val permissionHelper = AndroidPermissionHelper(this, permissionListener)
-        presenter = MainActivityPresenter(this, permissionListener, permissionHelper,
-                AndroidNetworkHelper(this), AndroidLocationProvider(this),
-                AndroidGeocoder(this), AirNowClient())
-    }
+    private val presenter: MainActivityPresenterInterface by inject(
+            parameters = { mapOf("permissionListener" to RxPermissionListener(),
+                    "activity" to this, "context" to this) }
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
