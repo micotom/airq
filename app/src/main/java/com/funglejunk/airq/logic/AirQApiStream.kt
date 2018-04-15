@@ -16,6 +16,8 @@ import com.funglejunk.airq.util.FuelResultMapper
 import io.reactivex.Observable
 import io.reactivex.Single
 import timber.log.Timber
+import java.text.SimpleDateFormat
+import java.util.*
 
 class AirQApiStream(private val permissionListener: RxPermissionListener,
                     private val permissionHelper: PermissionHelperInterface,
@@ -40,7 +42,7 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
         }
     }
 
-    fun work(): Observable<*> {
+    fun work(): Observable<Result<*>> {
         return Single.fromCallable { permissionHelper.check() }
                 .flatMapObservable {
                     permissionListener.listen()
@@ -78,8 +80,7 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                                 { Result("Cannot resolve address", false,
                                         Extensions.String.Empty) },
                                 {
-                                    val address = it
-                                    val city = address.locality
+                                    val city = it.locality
                                     Result("Address resolved", true, city)
                                 }
                         )
@@ -96,7 +97,7 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                                 .map {
                                     FuelResultMapper.map(it,
                                             { Result("Success api req", true, Pair(city, it)) },
-                                            { Result("Error api req: ${it}", false,
+                                            { Result("Error api req: $it", false,
                                                     Pair(Extensions.String.Empty, Extensions.String.Empty))}
                                     )
                                 }
@@ -128,7 +129,7 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                                 .map {
                                     FuelResultMapper.map(it,
                                             { Result("Success api req", true, it) },
-                                            { Result("Error api req: ${it}", false,
+                                            { Result("Error api req: $it", false,
                                                     Extensions.String.Empty)}
                                     )
                                 }
@@ -138,11 +139,12 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                     Timber.d(it.toString())
                 }
                 .map {
-                    it.map<Option<List<AirNowResult>>>(Option.empty()) {
+                    it.map(Option.empty()) {
                         val data = AirNowJsonParser().parse(it.content)
                         data.fold(
-                                { Result("Successfully parsed", true, data) },
-                                { Result("Parser error", false, Option.empty()) }
+                                { Result("Parser error", false,
+                                        Option.empty<List<AirNowResult>>()) },
+                                { Result("Successfully parsed", true, data) }
                         )
                     }
                 }
@@ -154,7 +156,10 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                                 {
                                     val builder = StringBuilder()
                                     it.forEach {
-                                        builder.append("${it.station.title}\n")
+                                        val unixTime = it.data.dateTime
+                                        val date = Date(unixTime * 1000)
+                                        val dateString = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(date)
+                                        builder.append("${it.station.title} ($dateString)\n")
                                         builder.append("\t${it.pollutant.name}: ${it.pollutionLevel} / 4\n\n")
                                     }
                                     Result("Transformed answer", true, builder.toString())

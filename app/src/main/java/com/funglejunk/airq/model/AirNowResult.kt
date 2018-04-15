@@ -10,7 +10,7 @@ data class AirNowResult(
 )
 
 data class Data(
-        @Json(name = "date_time") val dateTime: Int,
+        @Json(name = "date_time") val dateTime: Long,
         @Json(name = "value") val value: Int,
         @Json(name = "pollutant") val pollutant: Int
 )
