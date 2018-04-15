@@ -14,6 +14,7 @@ import com.funglejunk.airq.logic.parsing.AirNowCityParser
 import com.funglejunk.airq.logic.parsing.AirNowJsonParser
 import com.funglejunk.airq.model.AirNowResult
 import com.funglejunk.airq.util.Extensions
+import com.funglejunk.airq.util.FuelResultMapper
 import io.reactivex.Observable
 import io.reactivex.Single
 import timber.log.Timber
@@ -90,17 +91,16 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                     Timber.d(it.toString())
                 }
                 .flatMapSingle {
+                    val city = it.content
                     it.fmap(Single.just(Result(it.info, false,
                             Pair(Extensions.String.Empty, Extensions.String.Empty)))) {
                         airNowClient.getCityList()
-                                .map { (_, result) ->
-                                    when (result) {
-                                        is com.github.kittinunf.result.Result.Success ->
-                                            Result("Success api req", true, Pair(it.content, result.value))
-                                        is com.github.kittinunf.result.Result.Failure ->
-                                            Result("Error api req: ${result.error}", false,
-                                                    Pair(Extensions.String.Empty, Extensions.String.Empty))
-                                    }
+                                .map {
+                                    FuelResultMapper.map(it,
+                                            { Result("Success api req", true, Pair(city, it)) },
+                                            { Result("Error api req: ${it}", false,
+                                                    Pair(Extensions.String.Empty, Extensions.String.Empty))}
+                                    )
                                 }
                     }
                 }
@@ -127,16 +127,12 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                 .flatMapSingle {
                     it.fmap(Single.just(it)) {
                         airNowClient.getDataBySlug(it.content)
-                                .map { (_, result) ->
-                                    when (result) {
-                                        is com.github.kittinunf.result.Result.Success -> {
-                                            Result("Success api req", true, result.value)
-                                        }
-                                        is com.github.kittinunf.result.Result.Failure -> {
-                                            Result("Error api req: ${result.error}",
-                                                    false, Extensions.String.Empty)
-                                        }
-                                    }
+                                .map {
+                                    FuelResultMapper.map(it,
+                                            { Result("Success api req", true, it) },
+                                            { Result("Error api req: ${it}", false,
+                                                    Extensions.String.Empty)}
+                                    )
                                 }
                     }
                 }
