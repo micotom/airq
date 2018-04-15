@@ -26,20 +26,22 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                     private val geoCoder: Geocoder,
                     private val airNowClient: AirNowClientInterface) {
 
-    data class Result<V : Any>(val info: String, private val success: Boolean, val content: V) {
-        fun <W : Any> map(default: W, f: (Result<V>) -> Result<W>): Result<W> {
+    data class Result<V : Any>(val info: String, val success: Boolean, val content: V) {
+
+        inline fun <W : Any> map(default: W, f: (Result<V>) -> Result<W>): Result<W> {
             return when (success) {
                 true -> f(this)
                 false -> Result(info = info, success = false, content = default)
             }
         }
 
-        fun <T : Any> fmap(default: T, f: (Result<V>) -> T): T {
+        inline fun <T : Any> fmap(default: T, f: (Result<V>) -> T): T {
             return when (success) {
                 true -> f(this)
                 false -> default
             }
         }
+
     }
 
     fun start(): Observable<Result<*>> {
