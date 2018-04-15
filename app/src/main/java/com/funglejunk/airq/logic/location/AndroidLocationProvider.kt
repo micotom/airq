@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import com.google.android.gms.location.LocationServices
 import io.reactivex.Observable
-import io.reactivex.Single
 import io.reactivex.subjects.PublishSubject
 import timber.log.Timber
 

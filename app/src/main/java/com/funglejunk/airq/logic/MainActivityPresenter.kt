@@ -1,11 +1,11 @@
 package com.funglejunk.airq.logic
 
-import com.funglejunk.airq.logic.net.NetworkHelper
 import com.funglejunk.airq.logic.location.Geocoder
 import com.funglejunk.airq.logic.location.LocationProvider
 import com.funglejunk.airq.logic.location.permission.PermissionHelperInterface
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
 import com.funglejunk.airq.logic.net.AirNowClientInterface
+import com.funglejunk.airq.logic.net.NetworkHelper
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import timber.log.Timber

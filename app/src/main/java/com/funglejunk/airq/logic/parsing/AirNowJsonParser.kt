@@ -4,11 +4,9 @@ import arrow.core.Option
 import com.funglejunk.airq.model.AirNowResult
 import com.squareup.moshi.KotlinJsonAdapterFactory
 import com.squareup.moshi.Moshi
-import timber.log.Timber
-import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
-import com.squareup.moshi.Types.newParameterizedType
 import org.json.JSONObject
+import timber.log.Timber
 
 
 class AirNowJsonParser {

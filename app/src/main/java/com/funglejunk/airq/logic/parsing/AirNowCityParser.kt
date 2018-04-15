@@ -2,7 +2,6 @@ package com.funglejunk.airq.logic.parsing
 
 import arrow.core.Option
 import com.funglejunk.airq.model.AirNowCityResult
-import com.funglejunk.airq.model.AirNowResult
 import com.squareup.moshi.KotlinJsonAdapterFactory
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
