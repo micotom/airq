@@ -1,8 +1,6 @@
 package com.funglejunk.airq.logic
 
-import arrow.core.None
 import arrow.core.Option
-import arrow.core.Some
 import com.funglejunk.airq.logic.location.Geocoder
 import com.funglejunk.airq.logic.location.Location
 import com.funglejunk.airq.logic.location.LocationProvider
@@ -76,15 +74,15 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                     it.map(Extensions.String.Empty) {
                         val location = it.content as Location
                         val addressOption = geocoder.resolve(location)
-                        when (addressOption) {
-                            is Some -> {
-                                val address = addressOption.t
-                                val city = address.locality
-                                Result("Address resolved", true, city)
-                            }
-                            is None -> Result("Cannot resolve address", false,
-                                    Extensions.String.Empty)
-                        }
+                        addressOption.fold(
+                                { Result("Cannot resolve address", false,
+                                        Extensions.String.Empty) },
+                                {
+                                    val address = it
+                                    val city = address.locality
+                                    Result("Address resolved", true, city)
+                                }
+                        )
                     }
                 }
                 .doOnNext {
@@ -108,20 +106,20 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                     it.map(Extensions.String.Empty) {
                         val (city, cityQueryResult) = it.content
                         val cityListOption = AirNowCityParser().parse(cityQueryResult)
-                        when (cityListOption) {
-                            is Some -> {
-                                val slug = cityListOption.t.find {
-                                    it.name == city
-                                }?.slug
-                                when (slug) {
-                                    null -> Result("Cannot find slug for $city", false,
-                                            Extensions.String.Empty)
-                                    else -> Result("Slug found", true, slug)
+                        cityListOption.fold(
+                                { Result("Cannot parse city list", false,
+                                        Extensions.String.Empty) },
+                                {
+                                    val slug = it.find {
+                                        it.name == city
+                                    }?.slug
+                                    when (slug) {
+                                        null -> Result("Cannot find slug for $city", false,
+                                                Extensions.String.Empty)
+                                        else -> Result("Slug found", true, slug)
+                                    }
                                 }
-                            }
-                            is None -> Result("Cannot parse city list", false,
-                                    Extensions.String.Empty)
-                        }
+                        )
                     }
                 }
                 .flatMapSingle {
@@ -141,28 +139,27 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                 }
                 .map {
                     it.map<Option<List<AirNowResult>>>(Option.empty()) {
-                        val json = it.content
-                        val data = AirNowJsonParser().parse(json)
-                        when (data) {
-                            is Some -> Result("Successfully parsed", true, data)
-                            is None -> Result("Parser error", false, Option.empty())
-                        }
+                        val data = AirNowJsonParser().parse(it.content)
+                        data.fold(
+                                { Result("Successfully parsed", true, data) },
+                                { Result("Parser error", false, Option.empty()) }
+                        )
                     }
                 }
                 .map {
                     it.map(Extensions.String.Empty) {
                         val results = it.content
-                        when (results) {
-                            is Some -> {
-                                val builder = StringBuilder()
-                                results.t.forEach {
-                                    builder.append("${it.station.title}\n")
-                                    builder.append("\t${it.pollutant.name}: ${it.pollutionLevel} / 4\n\n")
+                        results.fold(
+                                { Result("Cannot transform answer", false, Extensions.String.Empty) },
+                                {
+                                    val builder = StringBuilder()
+                                    it.forEach {
+                                        builder.append("${it.station.title}\n")
+                                        builder.append("\t${it.pollutant.name}: ${it.pollutionLevel} / 4\n\n")
+                                    }
+                                    Result("Transformed answer", true, builder.toString())
                                 }
-                                Result(it.info, true, builder.toString())
-                            }
-                            is None -> Result("Cannot transform answer", false, Extensions.String.Empty)
-                        }
+                        )
                     }
                 }
     }
