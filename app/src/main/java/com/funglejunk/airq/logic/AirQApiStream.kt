@@ -76,9 +76,8 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                     }
                 }
                 .map {
-                    it.map(Extensions.String.Empty) {
-                        val location = it.content as Location
-                        val addressOption = geoCoder.resolve(location)
+                    it.map(Extensions.String.Empty) { (_, _, location) ->
+                        val addressOption = geoCoder.resolve(location as Location)
                         addressOption.fold(
                                 { Result("Cannot resolve address", false,
                                         Extensions.String.Empty) },
@@ -93,7 +92,7 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                     Timber.d(it.toString())
                 }
                 .flatMapSingle {
-                    val city = it.content
+                    val (_, _, city) = it
                     it.fmap(Single.just(Result(it.info, false,
                             Pair(Extensions.String.Empty, Extensions.String.Empty)))) {
                         airNowClient.getCityList()
@@ -101,7 +100,7 @@ class AirQApiStream(private val permissionListener: RxPermissionListener,
                                     FuelResultMapper.map(it,
                                             { Result("Success api req", true, Pair(city, it)) },
                                             { Result("Error api req: $it", false,
-                                                    Pair(Extensions.String.Empty, Extensions.String.Empty))}
+                                                    Pair(Extensions.String.Empty, Extensions.String.Empty)) }
                                     )
                                 }
                     }
