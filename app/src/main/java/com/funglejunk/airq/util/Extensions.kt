@@ -5,7 +5,7 @@ class Extensions {
     class String {
         companion object {
             @JvmField
-            public val Empty: kotlin.String = ""
+            val Empty: kotlin.String = ""
         }
     }
 

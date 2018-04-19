@@ -20,7 +20,7 @@ class MainActivityPresenter(private val activity: MainActivityView,
         MainActivityPresenterInterface {
 
     private var apiSubscription: Disposable? = null
-    private val stream: AirQApiStream = AirQApiStream(
+    private val stream: MainStream = MainStream(
             permissionListener,
             permissionHelper,
             networkHelper,
@@ -34,7 +34,7 @@ class MainActivityPresenter(private val activity: MainActivityView,
                 .subscribeOn(Schedulers.io())
                 .subscribe {
                     Timber.d("result: $it")
-                    activity.displayResult(it.toString())
+                    activity.displayResult(it.content.toString() + "\n")
                 }
     }
 

@@ -34,7 +34,7 @@ class MainActivity : AppCompatActivity(), MainActivityView {
 
     override fun displayResult(text: String) {
         AndroidSchedulers.mainThread().createWorker().schedule {
-            textview.text = text
+            textview.text = "${textview.text}\n$text"
         }
     }
 
