@@ -6,15 +6,18 @@ import com.funglejunk.airq.R
 import com.funglejunk.airq.logic.MainActivityPresenterInterface
 import com.funglejunk.airq.logic.MainActivityView
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
-import io.reactivex.android.schedulers.AndroidSchedulers
 import kotlinx.android.synthetic.main.activity_main.*
 import org.koin.android.ext.android.inject
 
 class MainActivity : AppCompatActivity(), MainActivityView {
 
     private val presenter: MainActivityPresenterInterface by inject(
-            parameters = { mapOf("permissionListener" to RxPermissionListener(),
-                    "activity" to this, "context" to this) }
+            parameters = {
+                mapOf(
+                    "permissionListener" to RxPermissionListener(),
+                    "activity" to this,
+                    "context" to this)
+            }
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,8 +36,14 @@ class MainActivity : AppCompatActivity(), MainActivityView {
     }
 
     override fun displayResult(text: String) {
-        AndroidSchedulers.mainThread().createWorker().schedule {
+        runOnUiThread {
             textview.text = "${textview.text}\n$text"
+        }
+    }
+
+    override fun clearText() {
+        runOnUiThread {
+            textview.text = null
         }
     }
 

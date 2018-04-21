@@ -13,6 +13,7 @@ import com.github.kittinunf.fuel.rx.rx_responseString
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
+import timber.log.Timber
 
 class AirInfoStream(override val locationResult: StreamResult<Location>) : ApiStream {
 
@@ -54,18 +55,11 @@ class AirInfoStream(override val locationResult: StreamResult<Location>) : ApiSt
             }
         }.filter {
             val measurement = it.content
-            val lat = measurement.location.latitude
-            val lon = measurement.location.longitude
-            val sensorLocation = android.location.Location("").apply {
-                latitude = lat
-                longitude = lon
-            }
-            val androidUserLocation = android.location.Location("").apply {
-                latitude = locationResult.content.latitude
-                longitude = locationResult.content.longitude
-            }
-            sensorLocation.distanceTo(androidUserLocation) < 2500
+            val sensorLocation = Location(measurement.location.latitude, measurement.location.longitude)
+            val androidUserLocation = Location(locationResult.content.latitude, locationResult.content.longitude)
+            sensorLocation.distanceTo(androidUserLocation) < 2500.0f
         }.map {
+            Timber.d("air info result: ${it.content}")
             MeasurementFormatter().map(it.content).map {
                 StreamResult("Air Info result", true, it)
             }
