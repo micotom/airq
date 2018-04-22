@@ -22,14 +22,14 @@ import timber.log.Timber.DebugTree
 class Application : Application() {
 
     private val module : Module = org.koin.dsl.module.applicationContext {
-        factory { params -> AndroidPermissionHelper(params["permissionListener"], params["activity"])
+        bean { params -> AndroidPermissionHelper(params["permissionListener"], params["activity"])
                 as PermissionHelperInterface }
-        factory { params -> AndroidNetworkHelper(params["context"]) as NetworkHelper }
-        factory { params -> AndroidLocationProvider(params["context"]) as LocationProvider }
-        factory { params -> AndroidGeocoder(params["context"]) as Geocoder }
-        factory { AirNowClient() as AirNowClientInterface }
-        factory { params -> MainActivityPresenter(
-                params["activity"],
+        bean { params -> AndroidNetworkHelper(params["context"]) as NetworkHelper }
+        bean { params -> AndroidLocationProvider(params["context"]) as LocationProvider }
+        bean { params -> AndroidGeocoder(params["context"]) as Geocoder }
+        bean { AirNowClient() as AirNowClientInterface }
+        bean { params -> MainActivityPresenter(
+                // params["activity"],
                 params["permissionListener"],
                 get(parameters = { params.values }),
                 get(parameters = { params.values }),

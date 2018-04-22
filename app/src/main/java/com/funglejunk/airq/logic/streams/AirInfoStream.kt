@@ -1,6 +1,6 @@
 package com.funglejunk.airq.logic.streams
 
-import com.funglejunk.airq.logic.location.Location
+import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.logic.parsing.AirInfoJsonParser
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.model.StreamResult
@@ -22,6 +22,7 @@ class AirInfoStream(override val locationResult: StreamResult<Location>) : ApiSt
 
         return locationResult.fmap(Single.just(
                 StreamResult(locationResult.info, false, Extensions.String.Empty))) {
+            Timber.d("start air info stream")
             "http://api.luftdaten.info/static/v1/data.json"
                     .httpGet()
                     .rx_responseString()
@@ -39,6 +40,7 @@ class AirInfoStream(override val locationResult: StreamResult<Location>) : ApiSt
                         )
                     }
         }.map {
+            Timber.d("received air info content")
             it.map(emptyList()) {
                 val json = it.content
                 AirInfoJsonParser().parse(json).fold(
@@ -49,7 +51,14 @@ class AirInfoStream(override val locationResult: StreamResult<Location>) : ApiSt
                         { StreamResult("Successfully parsed", true, it) }
                 )
             }
-        }.toObservable().flatMapIterable { result ->
+        }.toObservable().map { result ->
+            val measurements = result.content
+            val groupedBySensorId = measurements.groupBy { it.sensor.id }
+            val sortedByDate = groupedBySensorId.map {
+                it.value.sortedBy { it.timestamp }.last()
+            }
+            StreamResult(result.info, true, sortedByDate)
+        }.flatMapIterable { result ->
             result.content.map {
                 StreamResult(result.info, true, it)
             }

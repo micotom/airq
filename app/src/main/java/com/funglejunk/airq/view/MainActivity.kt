@@ -4,7 +4,7 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import com.funglejunk.airq.R
 import com.funglejunk.airq.logic.MainActivityPresenterInterface
-import com.funglejunk.airq.logic.MainActivityView
+import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
 import kotlinx.android.synthetic.main.activity_main.*
 import org.koin.android.ext.android.inject
@@ -27,7 +27,7 @@ class MainActivity : AppCompatActivity(), MainActivityView {
 
     override fun onResume() {
         super.onResume()
-        presenter.viewStarted()
+        presenter.viewStarted(this)
     }
 
     override fun onPause() {
@@ -44,6 +44,60 @@ class MainActivity : AppCompatActivity(), MainActivityView {
     override fun clearText() {
         runOnUiThread {
             textview.text = null
+        }
+    }
+
+    override fun showLoadingAnimation() {
+        runOnUiThread {
+            loading_animation.smoothToShow()
+        }
+    }
+
+    override fun hideLoadingAnimation() {
+        runOnUiThread {
+            loading_animation.hide()
+        }
+    }
+
+    override fun setTemperatureValue(temperature: Double) {
+        runOnUiThread {
+            temperature_text.text = "$temperature°"
+        }
+    }
+
+    override fun setCo2Value(co2: Double) {
+        runOnUiThread {
+            co_text.text = co2.toString()
+        }
+    }
+
+    override fun setPm10Value(pm10: Double) {
+        runOnUiThread {
+            pm10_text.text = pm10.toString()
+        }
+    }
+
+    override fun setPm25Value(pm25: Double) {
+        runOnUiThread {
+            pm25_text.text = pm25.toString()
+        }
+    }
+
+    override fun alphaOutIconTable() {
+        runOnUiThread {
+            icon_table.alpha = 0.2f
+        }
+    }
+
+    override fun alphaInIconTable() {
+        runOnUiThread {
+            icon_table.alpha = 1.0f
+        }
+    }
+
+    override fun displaySensorLocations(userLocation: Location, sensorLocations: List<Location>) {
+        runOnUiThread {
+            sensor_map.setLocations(userLocation, sensorLocations)
         }
     }
 

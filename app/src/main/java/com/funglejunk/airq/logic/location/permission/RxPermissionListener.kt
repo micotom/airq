@@ -14,6 +14,7 @@ class RxPermissionListener : PermissionListener {
     private val subject = BehaviorSubject.create<Boolean>()
 
     fun listen(): Observable<Boolean> {
+        Timber.d("listening")
         return subject.hide()
     }
 

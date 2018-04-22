@@ -1,6 +1,6 @@
 package com.funglejunk.airq.logic.streams
 
-import com.funglejunk.airq.logic.location.Location
+import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.model.StreamResult
 import io.reactivex.Observable

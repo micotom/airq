@@ -6,7 +6,7 @@ import com.funglejunk.airq.model.Coordinates
 import com.funglejunk.airq.model.SensorClass
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.model.airinfo.AirInfoMeasurement
-import com.funglejunk.airq.model.openaq.Result
+import com.funglejunk.airq.model.openaq.OpenAqResult
 import java.text.SimpleDateFormat
 
 class MeasurementFormatter {
@@ -16,7 +16,7 @@ class MeasurementFormatter {
     @SuppressLint("SimpleDateFormat")
     private val airInfoDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
 
-    fun map(measurement: Result): Option<StandardizedMeasurement> {
+    fun map(measurement: OpenAqResult): Option<StandardizedMeasurement> {
         return try {
             val fm = StandardizedMeasurement(
                     openAqDateFormat.parse(measurement.date.local),

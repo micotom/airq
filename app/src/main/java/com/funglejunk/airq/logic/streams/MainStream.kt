@@ -1,12 +1,13 @@
 package com.funglejunk.airq.logic.streams
 
 import com.funglejunk.airq.logic.location.Geocoder
-import com.funglejunk.airq.logic.location.Location
+import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.logic.location.LocationProvider
 import com.funglejunk.airq.logic.location.permission.PermissionHelperInterface
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
 import com.funglejunk.airq.logic.net.AirNowClientInterface
 import com.funglejunk.airq.logic.net.NetworkHelper
+import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.model.StreamResult
 import com.funglejunk.airq.util.Extensions
 import com.funglejunk.airq.util.zipToPair
@@ -21,17 +22,18 @@ class MainStream(private val permissionListener: RxPermissionListener,
                  private val geoCoder: Geocoder,
                  private val airNowClient: AirNowClientInterface) {
 
-    fun start(): Observable<StreamResult<*>> {
+    fun start(): Single<List<StreamResult<Triple<StandardizedMeasurement, Location, Double>>>> {
         Timber.d("starting stream ...")
         return Single.fromCallable { permissionHelper.check() }
-                .flatMapObservable {
-                    permissionListener.listen()
+                .flatMap {
+                    Timber.d("listen for location permission")
+                    permissionListener.listen().first(false)
                 }
                 .map {
                     StreamResult("Permission granted: $it", it, Extensions.String.Empty)
                 }
-                .doOnNext {
-                    Timber.d(it.toString())
+                .doOnEvent { event, _ ->
+                    Timber.d(event.toString())
                 }
                 .map {
                     it.map(Extensions.String.Empty) {
@@ -39,20 +41,24 @@ class MainStream(private val permissionListener: RxPermissionListener,
                         StreamResult("Network available: $networkAvailable", networkAvailable, Extensions.String.Empty)
                     }
                 }
-                .doOnNext {
-                    Timber.d(it.toString())
+                .doOnEvent { event, _ ->
+                    Timber.d(event.toString())
                 }
                 .flatMap {
-                    it.fmap(Observable.just(StreamResult("Location error: $it", false, Location.Invalid))) {
+                    val errorResult = StreamResult("Location error: $it", false, Location.Invalid)
+                    it.fmap(Single.just(errorResult)) {
                         locationProvider.getLastKnownLocation().map {
                             when (it.isValid) {
                                 true -> StreamResult("Location known: $it", true, it)
-                                false -> StreamResult("Location error: $it", false, Location.Invalid)
+                                false -> errorResult
                             }
-                        }
+                        }.first(errorResult)
                     }
                 }
-                .flatMapSingle {
+                .doOnEvent { event, _ ->
+                    Timber.d(event.toString())
+                }
+                .flatMap {
                     zipToPair(
                             Observable.concat(
                                     AirInfoStream(it).observable(),
@@ -89,36 +95,17 @@ class MainStream(private val permissionListener: RxPermissionListener,
                     val sorted = measurementsWithDouble.sortedBy { it.second }
                     StreamResult("Combined and sorted", true, Pair(sorted, userLocation))
                 }
-                .flatMapIterable { streamResult ->
+                .map { streamResult ->
                     streamResult.content.first.map {
-                        Triple(it.first, streamResult.content.second, it.second)
+                        StreamResult("Finished", true,
+                                Triple(it.first, streamResult.content.second, it.second))
                     }
                 }
-                .map {
-                    StreamResult("Finished", true, it)
+                .doOnEvent { e, _ ->
+                    e.forEach {
+                        Timber.d("reporting: ${it.content.first}")
+                    }
                 }
-        /*
-        .flatMapIterable { (measurementStreamResults, userLocationStreamResult) ->
-            measurementStreamResults.map { Pair(it, userLocationStreamResult) }
-        }
-        .map { streamResultPair ->
-            val (userLocationStream, measurementStream) = streamResultPair
-            val success = userLocationStream.success && measurementStream.success
-            StreamResult(userLocationStream.info + " / " + measurementStream.info,
-                    success, Pair(userLocationStream.content, measurementStream.content))
-        }
-        .map { streamResult ->
-            Timber.d("stream result: $streamResult")
-            val (measurement, userLocation) = streamResult.content
-            streamResult.map(Triple(measurement, userLocation, Double.MAX_VALUE)) {
-                val measurementLocation = Location(measurement.coordinates.lat,
-                        measurement.coordinates.lon)
-                StreamResult(streamResult.info, true,
-                        Triple(measurement, userLocation,
-                                userLocation.distanceTo(measurementLocation)))
-            }
-        }
-        */
 
     }
 

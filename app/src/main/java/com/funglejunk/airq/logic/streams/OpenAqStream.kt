@@ -1,6 +1,6 @@
 package com.funglejunk.airq.logic.streams
 
-import com.funglejunk.airq.logic.location.Location
+import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.logic.net.OpenAqClient
 import com.funglejunk.airq.logic.parsing.OpenAqMeasurementsResultParser
 import com.funglejunk.airq.model.StandardizedMeasurement
@@ -18,9 +18,10 @@ class OpenAqStream(override val locationResult: StreamResult<Location>) : ApiStr
 
     override fun internalObservable(locationResult: StreamResult<Location>):
             Observable<StreamResult<StandardizedMeasurement>> {
+        Timber.d("start open aq stream")
         return locationResult.fmap(Single.just(locationResult)) {
             val now = Calendar.getInstance().time
-            val oneHourBefore = Date(System.currentTimeMillis() - 12 * 3600 * 1000)
+            val oneHourBefore = Date(System.currentTimeMillis() - 3600 * 1000)
             val location = it.content
             OpenAqClient().getMeasurements(
                     location.latitude, location.longitude, oneHourBefore, now
@@ -52,7 +53,10 @@ class OpenAqStream(override val locationResult: StreamResult<Location>) : ApiStr
                     { StreamResult("OpenAq Result", true, it) }
             )
 
+        }.doFinally {
+            Timber.e("open aq finished")
         }
+
     }
 
 }

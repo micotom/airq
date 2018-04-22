@@ -3,6 +3,7 @@ package com.funglejunk.airq.logic.location
 import android.content.Context
 import android.location.Address
 import arrow.core.Option
+import com.funglejunk.airq.model.Location
 import java.util.*
 
 class AndroidGeocoder(private val context: Context) : Geocoder {

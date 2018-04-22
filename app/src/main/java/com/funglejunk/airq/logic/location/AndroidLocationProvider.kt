@@ -2,6 +2,7 @@ package com.funglejunk.airq.logic.location
 
 import android.annotation.SuppressLint
 import android.content.Context
+import com.funglejunk.airq.model.Location
 import com.google.android.gms.location.LocationServices
 import io.reactivex.Observable
 import io.reactivex.subjects.PublishSubject
