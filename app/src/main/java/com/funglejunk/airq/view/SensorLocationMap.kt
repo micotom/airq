@@ -10,12 +10,17 @@ import android.view.View
 import com.funglejunk.airq.R
 import com.funglejunk.airq.logic.location.MercatorProjector
 import com.funglejunk.airq.model.Location
+import timber.log.Timber
 
 
 class SensorLocationMap @JvmOverloads constructor(context: Context,
                                                   attrs: AttributeSet? = null,
                                                   defStyleAttr: Int = 0) :
         View(context, attrs, defStyleAttr) {
+
+    companion object {
+        private const val scale = 5000.0
+    }
 
     private val paint = Paint().apply {
         color = ContextCompat.getColor(context, R.color.colorPrimaryLight)
@@ -31,8 +36,8 @@ class SensorLocationMap @JvmOverloads constructor(context: Context,
         strokeWidth = 6.0f
     }
 
-    private var userLocation: Location? = null
-    private var sensorLocations: List<Location> = emptyList()
+    private var userLocationPixels: MercatorProjector.MercatorPoint? = null
+    private var sensorLocationPixels = emptyList<MercatorProjector.MercatorPoint>()
 
     private var viewHeight: Int? = null
     private var viewWidth: Int? = null
@@ -73,6 +78,7 @@ class SensorLocationMap @JvmOverloads constructor(context: Context,
 
     override fun onDetachedFromWindow() {
         animationHandler.removeCallbacks(animationRunnable)
+        sensorsDrawn = false
         super.onDetachedFromWindow()
     }
 
@@ -83,37 +89,53 @@ class SensorLocationMap @JvmOverloads constructor(context: Context,
     }
 
     override fun onDraw(canvas: Canvas?) {
-        when (canvas != null && viewHeight != null && viewWidth != null && userLocation != null) {
-            true -> {
-                val scale = 5000.0
-                val userPoint = MercatorProjector.getPixelWithScaleFactor(userLocation!!, scale, viewWidth!!)
-                val normalized = {
-                    val widthCenter = viewWidth!! / 2.0
-                    val heightCenter = viewHeight!! / 2.0
-                    val diffX = userPoint.x - widthCenter
-                    val diffY = userPoint.y - heightCenter
-                    Pair(diffX, diffY)
-                }()
-                userPoint.x -= normalized.first
-                userPoint.y -= normalized.second
-
-                canvas!!.drawCircle(userPoint.x.toFloat(), userPoint.y.toFloat(), currentPointRadius + 2.0f, outlinePaint)
-                canvas.drawCircle(userPoint.x.toFloat(), userPoint.y.toFloat(), currentPointRadius, secPaint)
-                sensorLocations.forEach {
-                    val point = MercatorProjector.getPixelWithScaleFactor(it, scale, viewWidth!!)
-                    point.x -= normalized.first
-                    point.y -= normalized.second
-                    canvas.drawCircle(point.x.toFloat(), point.y.toFloat(), 12.0f,
-                            outlinePaint)
+        canvas?.let {
+            userLocationPixels?.let { safeUserLocation ->
+                canvas.drawCircle(safeUserLocation.x.toFloat(), safeUserLocation.y.toFloat(),
+                        currentPointRadius + 2.0f, outlinePaint)
+                canvas.drawCircle(safeUserLocation.x.toFloat(), safeUserLocation.y.toFloat(),
+                        currentPointRadius, secPaint)
+                sensorLocationPixels.forEach {
+                    canvas.drawCircle(it.x.toFloat(), it.y.toFloat(), 12.0f, outlinePaint)
                 }
                 sensorsDrawn = true
             }
-        }
+        } ?: Timber.e("Canvas is null!")
     }
 
     fun setLocations(userLocation: Location, sensorLocations: List<Location>) {
-        this.userLocation = userLocation
-        this.sensorLocations = sensorLocations
+        viewWidth?.let { safeWidth ->
+
+            userLocationPixels = MercatorProjector.getPixelWithScaleFactor(userLocation, scale, safeWidth)
+
+            userLocationPixels?.let { safeUserLocation ->
+
+                val normalized = {
+                    val widthCenter = viewWidth!! / 2.0
+                    val heightCenter = viewHeight!! / 2.0
+                    val diffX = safeUserLocation.x - widthCenter
+                    val diffY = safeUserLocation.y - heightCenter
+                    Pair(diffX, diffY)
+                }()
+
+                safeUserLocation.x -= normalized.first
+                safeUserLocation.y -= normalized.second
+
+                sensorLocationPixels = sensorLocations.map {
+                    val point = MercatorProjector.getPixelWithScaleFactor(it, scale, safeWidth)
+                    point.x -= normalized.first
+                    point.y -= normalized.second
+                    point
+                }
+                invalidate()
+
+            } ?: Timber.e("user location was changed to null")
+        }
+    }
+
+    fun clearLocations() {
+        userLocationPixels = null
+        sensorsDrawn = false
         invalidate()
     }
 

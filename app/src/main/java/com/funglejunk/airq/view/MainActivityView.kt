@@ -4,10 +4,6 @@ import com.funglejunk.airq.model.Location
 
 interface MainActivityView {
 
-    fun clearText()
-
-    fun displayResult(text: String)
-
     fun showLoadingAnimation()
 
     fun hideLoadingAnimation()
@@ -25,5 +21,7 @@ interface MainActivityView {
     fun alphaInIconTable()
 
     fun displaySensorLocations(userLocation: Location, sensorLocations: List<Location>)
+
+    fun clearSensorLocations()
 
 }

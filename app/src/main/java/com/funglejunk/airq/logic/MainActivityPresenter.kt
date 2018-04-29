@@ -1,13 +1,13 @@
 package com.funglejunk.airq.logic
 
 import com.funglejunk.airq.logic.location.Geocoder
-import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.logic.location.LocationProvider
 import com.funglejunk.airq.logic.location.permission.PermissionHelperInterface
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
 import com.funglejunk.airq.logic.net.AirNowClientInterface
 import com.funglejunk.airq.logic.net.NetworkHelper
 import com.funglejunk.airq.logic.streams.MainStream
+import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.SensorClass
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.model.StreamResult
@@ -16,7 +16,6 @@ import com.funglejunk.airq.view.MainActivityView
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
-import kotlin.math.roundToInt
 
 class MainActivityPresenter(permissionListener: RxPermissionListener,
                             permissionHelper: PermissionHelperInterface,
@@ -38,28 +37,25 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
     override fun viewStarted(activity: MainActivityView) {
         apiSubscription = stream.start()
                 .doOnSubscribe {
-                    activity.clearText()
+                    activity.clearSensorLocations()
                     activity.alphaOutIconTable()
                     activity.showLoadingAnimation()
                 }
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
                 .doOnEvent { event, _ ->
-                    when (event.isNotEmpty()) {
-                        true -> {
-                            val userLocation = event.first().content.second
-                            val sensorLocations = event
-                                    .distinctBy {
-                                        it.content.first.coordinates
-                                    }
-                                    .map {
-                                        val (lat, lng) = it.content.first.coordinates
-                                        Location(lat, lng)
-                                    }
-                            activity.displaySensorLocations(userLocation, sensorLocations)
-                        }
+                    if (event.isNotEmpty()) {
+                        val userLocation = event.first().content.second
+                        val sensorLocations = event
+                                .distinctBy {
+                                    it.content.first.coordinates
+                                }
+                                .map {
+                                    val (lat, lng) = it.content.first.coordinates
+                                    Location(lat, lng)
+                                }
+                        activity.displaySensorLocations(userLocation, sensorLocations)
                     }
-                    // TODO display user location
                 }
                 .map { results ->
                     results.map { result ->
@@ -69,8 +65,13 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                 }
                 .doOnEvent { results, _ ->
                     fun List<StandardizedMeasurement>.getAv(sensorClass: SensorClass): Double {
-                        return this.filter { it.sensorType == sensorClass }.map { it.value }
+                        val av = this.filter { it.sensorType == sensorClass }.map { it.value }
                                 .average()
+                        return if (av == Double.NaN) {
+                            return -1.0
+                        } else {
+                            av
+                        }
                     }
 
                     val measurements = results.map {
@@ -89,26 +90,6 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                         setCo2Value(avCo2)
                         setPm10Value(avPm10)
                         setPm25Value(avPm25)
-                        displayResult("Temperature: $avTemp")
-                        displayResult("Humidity: $avHumidity")
-                        displayResult("PM10: $avPm10")
-                        displayResult("PM2.5: $avPm25")
-                        displayResult("CO2: $avCo2")
-                        displayResult("Pressure: $avPressure")
-                        displayResult("\n")
-                    }
-
-                    results.forEach { result ->
-                        val (measurement, distanceToLocation) = result.content
-                        val text = when (result.success) {
-                            true -> {
-                                "Distance: ${distanceToLocation.roundToInt()} meters\n" +
-                                        "Date: ${measurement.date}\n" +
-                                        "Sensor: ${measurement.sensorType}: ${measurement.value}\n"
-                            }
-                            false -> "Error reading measurement\n"
-                        }
-                        activity.displayResult(text)
                     }
                 }
                 .doFinally {

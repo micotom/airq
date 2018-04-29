@@ -148,19 +148,6 @@
         android:layout_below="@id/divider"
         />
 
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/sensor_map"
-        android:layout_marginTop="24dp">
-
-        <TextView
-            android:id="@+id/textview"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-
-    </ScrollView>
-
     <com.wang.avi.AVLoadingIndicatorView
         android:id="@+id/loading_animation"
         android:layout_width="150dp"

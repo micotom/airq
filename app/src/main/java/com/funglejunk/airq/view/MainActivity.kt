@@ -4,8 +4,8 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import com.funglejunk.airq.R
 import com.funglejunk.airq.logic.MainActivityPresenterInterface
-import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
+import com.funglejunk.airq.model.Location
 import kotlinx.android.synthetic.main.activity_main.*
 import org.koin.android.ext.android.inject
 
@@ -33,18 +33,6 @@ class MainActivity : AppCompatActivity(), MainActivityView {
     override fun onPause() {
         presenter.viewStopped()
         super.onPause()
-    }
-
-    override fun displayResult(text: String) {
-        runOnUiThread {
-            textview.text = "${textview.text}\n$text"
-        }
-    }
-
-    override fun clearText() {
-        runOnUiThread {
-            textview.text = null
-        }
     }
 
     override fun showLoadingAnimation() {
@@ -98,6 +86,12 @@ class MainActivity : AppCompatActivity(), MainActivityView {
     override fun displaySensorLocations(userLocation: Location, sensorLocations: List<Location>) {
         runOnUiThread {
             sensor_map.setLocations(userLocation, sensorLocations)
+        }
+    }
+
+    override fun clearSensorLocations() {
+        runOnUiThread {
+            sensor_map.clearLocations()
         }
     }
 
