@@ -21,11 +21,27 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:orientation="vertical">
-                <ImageView
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/temperature" />
+                <RelativeLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_gravity="center">
+
+                    <View
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@drawable/circle"
+                        android:layout_centerInParent="true"
+                        />
+
+                    <ImageView
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/sunrise"
+                        android:layout_centerInParent="true"
+                        />
+
+                </RelativeLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -49,11 +65,27 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical"
                 android:layout_weight="1">
-                <ImageView
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/co" />
+                <RelativeLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_gravity="center">
+
+                    <View
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@drawable/circle"
+                        android:layout_centerInParent="true"
+                        />
+
+                    <ImageView
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/co"
+                        android:layout_centerInParent="true"
+                        />
+
+                </RelativeLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -77,11 +109,27 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical"
                 android:layout_weight="1">
-                <ImageView
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/pm10" />
+                <RelativeLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_gravity="center">
+
+                    <View
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@drawable/circle"
+                        android:layout_centerInParent="true"
+                        />
+
+                    <ImageView
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/pm10"
+                        android:layout_centerInParent="true"
+                        />
+
+                </RelativeLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -105,11 +153,27 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical"
                 android:layout_weight="1">
-                <ImageView
-                    android:layout_width="50dp"
-                    android:layout_height="50dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/pm25" />
+                <RelativeLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:layout_gravity="center">
+
+                    <View
+                        android:layout_width="72dp"
+                        android:layout_height="72dp"
+                        android:background="@drawable/circle"
+                        android:layout_centerInParent="true"
+                        />
+
+                    <ImageView
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/pm25"
+                        android:layout_centerInParent="true"
+                        />
+
+                </RelativeLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -136,7 +200,7 @@
         android:id="@+id/divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/colorDivider"
+        android:background="@color/colorPrimaryLight"
         android:layout_below="@id/icon_table"
         android:layout_marginTop="24dp"
         android:layout_marginBottom="24dp"
