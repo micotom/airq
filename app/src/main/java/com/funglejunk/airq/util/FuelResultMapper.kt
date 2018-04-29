@@ -6,6 +6,7 @@ import com.github.kittinunf.result.Result
 
 object FuelResultMapper {
 
+    // TODO use left side for errors, right for success
     fun <T> map(fuel: Pair<Response, Result<String, FuelError>>,
                 success: (String) -> T,
                 failure: (FuelError) -> T): T {
