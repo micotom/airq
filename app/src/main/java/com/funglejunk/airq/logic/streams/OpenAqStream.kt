@@ -1,12 +1,14 @@
 package com.funglejunk.airq.logic.streams
 
-import com.funglejunk.airq.model.Location
+import arrow.core.Try
 import com.funglejunk.airq.logic.net.OpenAqClient
 import com.funglejunk.airq.logic.parsing.OpenAqMeasurementsResultParser
+import com.funglejunk.airq.model.AirqException
+import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.model.StreamResult
 import com.funglejunk.airq.model.openaq.OpenAqMeasurementsResult
-import com.funglejunk.airq.util.Extensions
+import com.funglejunk.airq.model.openaq.OpenAqResult
 import com.funglejunk.airq.util.FuelResultMapper
 import com.funglejunk.airq.util.MeasurementFormatter
 import io.reactivex.Observable
@@ -14,37 +16,39 @@ import io.reactivex.Single
 import timber.log.Timber
 import java.util.*
 
-class OpenAqStream(override val locationResult: StreamResult<Location>) : ApiStream {
+class OpenAqStream(override val location: Location) : ApiStream {
 
-    override fun internalObservable(locationResult: StreamResult<Location>):
+    override fun internalObservable(location: Location):
             Observable<StreamResult<StandardizedMeasurement>> {
         Timber.d("start open aq stream")
-        return locationResult.fmap(Single.just(locationResult)) {
+
+        return Single.just(location).flatMap {
             val now = Calendar.getInstance().time
             val oneHourBefore = Date(System.currentTimeMillis() - 3600 * 1000)
-            val location = it.content
             OpenAqClient().getMeasurements(
                     location.latitude, location.longitude, oneHourBefore, now
             ).map {
                 FuelResultMapper.map(it,
-                        { StreamResult("Success api req", true, it) },
-                        {
-                            StreamResult("Error api req: $it", false,
-                                    Pair(Extensions.String.Empty, Extensions.String.Empty))
-                        }
+                        { Try.Success(it) },
+                        { Try.Failure<String>(it.exception) }
                 )
             }
         }.map {
-            it.map(OpenAqMeasurementsResult.NONE) {
-                val json = it.content as String
-                OpenAqMeasurementsResultParser().parse(json).fold(
-                        { StreamResult("Parser error", false, OpenAqMeasurementsResult.NONE) },
-                        { StreamResult("Successfully parsed", true, it) }
-                )
-            }
+            it.fold(
+                    { Try.Failure<OpenAqMeasurementsResult>(it) },
+                    { json ->
+                        OpenAqMeasurementsResultParser().parse(json)
+                                .fold(
+                                        { Try.Failure<OpenAqMeasurementsResult>(AirqException.OpenAqParser()) },
+                                        { Try.Success(it) }
+                                )
+                    }
+            )
         }.toObservable().flatMapIterable {
-            Timber.d("api results: ${it.content.results.size}")
-            it.content.results
+            it.fold(
+                    { emptyList<OpenAqResult>() },
+                    { it.results }
+            )
         }.map {
             MeasurementFormatter().map(it)
         }.map {

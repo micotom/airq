@@ -1,15 +1,16 @@
 package com.funglejunk.airq.logic.streams
 
+import arrow.core.Try
 import com.funglejunk.airq.logic.location.Geocoder
-import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.logic.location.LocationProvider
 import com.funglejunk.airq.logic.location.permission.PermissionHelperInterface
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
 import com.funglejunk.airq.logic.net.AirNowClientInterface
 import com.funglejunk.airq.logic.net.NetworkHelper
+import com.funglejunk.airq.model.AirqException
+import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.model.StreamResult
-import com.funglejunk.airq.util.Extensions
 import com.funglejunk.airq.util.zipToPair
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -30,53 +31,73 @@ class MainStream(private val permissionListener: RxPermissionListener,
                     permissionListener.listen().first(false)
                 }
                 .map {
-                    StreamResult("Permission granted: $it", it, Extensions.String.Empty)
+                    when (it) {
+                        true -> Try.Success(it)
+                        false -> Try.Failure<Boolean>(AirqException.NoLocationPermission())
+                    }
                 }
                 .doOnEvent { event, _ ->
                     Timber.d(event.toString())
                 }
                 .map {
-                    it.map(Extensions.String.Empty) {
-                        val networkAvailable = networkHelper.networkAvailable()
-                        StreamResult("Network available: $networkAvailable", networkAvailable, Extensions.String.Empty)
-                    }
-                }
-                .doOnEvent { event, _ ->
-                    Timber.d(event.toString())
-                }
-                .flatMap {
-                    val errorResult = StreamResult("Location error: $it", false, Location.Invalid)
-                    it.fmap(Single.just(errorResult)) {
-                        locationProvider.getLastKnownLocation().map {
-                            when (it.isValid) {
-                                true -> StreamResult("Location known: $it", true, it)
-                                false -> errorResult
-                            }
-                        }.first(errorResult)
-                    }
-                }
-                .doOnEvent { event, _ ->
-                    Timber.d(event.toString())
-                }
-                .flatMap {
-                    zipToPair(
-                            Observable.concat(
-                                    AirInfoStream(it).observable(),
-                                    OpenAqStream(it).observable()
-                            ).toList(),
-                            Single.just(it)
+                    it.fold(
+                            { Try.Failure<Boolean>(it) },
+                            { Try.Success(networkHelper.networkAvailable()) }
                     )
                 }
-                .map { (measurementResultList, locationResult) ->
+                .doOnEvent { event, _ ->
+                    Timber.d(event.toString())
+                }
+                .map {
+                    it.fold(
+                            { Try.Failure<Boolean>(it) },
+                            {
+                                when (it) {
+                                    true -> Try.Success(true)
+                                    false -> Try.Failure<Boolean>(AirqException.NoNetwork())
+                                }
+                            }
+                    )
+                }
+                .flatMap {
+                    it.fold(
+                            { Single.just(Try.Failure<Location>(it)) },
+                            {
+                                locationProvider.getLastKnownLocation().map {
+                                    when (it.isValid) {
+                                        true -> Try.Success(it)
+                                        false -> Try.Failure<Location>(AirqException.InvalidLastKnownLocation())
+                                    }
+                                }.first(Try.Failure(AirqException.InvalidLastKnownLocation()))
+                            }
+                    )
+                }
+                .doOnEvent { event, _ ->
+                    Timber.d(event.toString())
+                }
+                .flatMap {
+                    it.fold(
+                            { Single.never<Pair<List<StreamResult<StandardizedMeasurement>>, Location>>() },
+                            {
+                                zipToPair(
+                                        Observable.concat(
+                                                AirInfoStream(it).observable(),
+                                                OpenAqStream(it).observable()
+                                        ).toList(),
+                                        Single.just(it)
+                                )
+                            }
+                    )
+                }
+                .map { (measurementResultList, userLocation) ->
                     StreamResult(
                             "Combined with distance",
                             true,
                             Triple(
                                     measurementResultList,
-                                    locationResult,
+                                    userLocation,
                                     measurementResultList.map {
                                         val measurement = it.content
-                                        val userLocation = locationResult.content
                                         val measurementLocation = Location(measurement.coordinates.lat,
                                                 measurement.coordinates.lon)
                                         measurementLocation.distanceTo(userLocation)
@@ -88,7 +109,7 @@ class MainStream(private val permissionListener: RxPermissionListener,
                     StreamResult(streamResult.info, true,
                             Pair(streamResult.content.first.mapIndexed { index, measurementResult ->
                                 Pair(measurementResult.content, streamResult.content.third[index])
-                            }, streamResult.content.second.content))
+                            }, streamResult.content.second))
                 }
                 .map { streamResult ->
                     val (measurementsWithDouble, userLocation) = streamResult.content

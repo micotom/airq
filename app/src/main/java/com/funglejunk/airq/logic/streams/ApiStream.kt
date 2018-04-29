@@ -8,13 +8,13 @@ import io.reactivex.Single
 
 interface ApiStream {
 
-    val locationResult: StreamResult<Location>
+    val location: Location
 
-    fun observable(): Observable<StreamResult<StandardizedMeasurement>> = Single.just(locationResult)
+    fun observable(): Observable<StreamResult<StandardizedMeasurement>> = Single.just(location)
             .flatMapObservable {
                 internalObservable(it)
             }
 
-    fun internalObservable(locationResult: StreamResult<Location>): Observable<StreamResult<StandardizedMeasurement>>
+    fun internalObservable(location: Location): Observable<StreamResult<StandardizedMeasurement>>
 
 }

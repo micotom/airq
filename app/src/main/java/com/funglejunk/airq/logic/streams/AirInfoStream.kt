@@ -16,16 +16,16 @@ import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 
-class AirInfoStream(override val locationResult: StreamResult<Location>) : ApiStream {
+class AirInfoStream(override val location: Location) : ApiStream {
 
     companion object {
         const val API_ENDPOINT = "http://api.luftdaten.info/static/v1/data.json"
     }
 
-    override fun internalObservable(locationResult: StreamResult<Location>):
+    override fun internalObservable(location: Location):
             Observable<StreamResult<StandardizedMeasurement>> {
 
-        return locationResult.fmap(Single.just(Try.Failure<String>(AirqException.NoUserLocationException()))) {
+        return Single.just(location).flatMap {
             Timber.d("start air info stream")
             API_ENDPOINT
                     .httpGet()
@@ -44,7 +44,7 @@ class AirInfoStream(override val locationResult: StreamResult<Location>) : ApiSt
                     { Try.Failure<List<AirInfoMeasurement>>(it) },
                     { json ->
                         AirInfoJsonParser().parse(json).fold(
-                                { Try.Failure<List<AirInfoMeasurement>>(AirqException.AirInfoParserException()) },
+                                { Try.Failure<List<AirInfoMeasurement>>(AirqException.AirInfoParser()) },
                                 { Try.Success(it) }
                         )
                     }
@@ -67,7 +67,7 @@ class AirInfoStream(override val locationResult: StreamResult<Location>) : ApiSt
             )
         }.filter {
             val sensorLocation = Location(it.location.latitude, it.location.longitude)
-            val androidUserLocation = Location(locationResult.content.latitude, locationResult.content.longitude)
+            val androidUserLocation = Location(location.latitude, location.longitude)
             sensorLocation.distanceTo(androidUserLocation) < 2500.0f
         }.map {
             Timber.d("air info result: ${it}")
