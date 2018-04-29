@@ -64,24 +64,27 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                     }
                 }
                 .doOnEvent { results, _ ->
+
                     fun List<StandardizedMeasurement>.getAv(sensorClass: SensorClass): Double {
-                        val av = this.filter { it.sensorType == sensorClass }.map { it.value }
-                                .average()
-                        return if (av == Double.NaN) {
-                            return -1.0
-                        } else {
-                            av
+                        val values = filter { it.sensorType == sensorClass }
+                        val av = when (values.isNotEmpty()) {
+                            true -> values.map { it.value }.average()
+                            else -> Double.NaN
+                        }
+                        return when (av) {
+                            Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY -> Double.NaN
+                            else -> av.roundTo2Decimals()
                         }
                     }
 
                     val measurements = results.map {
                         it.content.first
                     }
-                    // TODO all of them could cause NaN exception in round to double!
-                    val avTemp = measurements.getAv(SensorClass.TEMPERATURE).roundTo2Decimals()
-                    val avHumidity = measurements.getAv(SensorClass.HUMIDITY).roundTo2Decimals()
-                    val avPm10 = measurements.getAv(SensorClass.PM10).roundTo2Decimals()
-                    val avPm25 = measurements.getAv(SensorClass.PM25).roundTo2Decimals()
+
+                    val avTemp = measurements.getAv(SensorClass.TEMPERATURE)
+                    val avHumidity = measurements.getAv(SensorClass.HUMIDITY)
+                    val avPm10 = measurements.getAv(SensorClass.PM10)
+                    val avPm25 = measurements.getAv(SensorClass.PM25)
                     val avCo2 = measurements.getAv(SensorClass.CO2)
                     val avPressure = measurements.getAv(SensorClass.BAROMETER)
 
