@@ -24,4 +24,6 @@ interface MainActivityView {
 
     fun clearSensorLocations()
 
+    fun clearSensorValues()
+
 }

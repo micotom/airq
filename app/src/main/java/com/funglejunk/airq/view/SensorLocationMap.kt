@@ -91,13 +91,13 @@ class SensorLocationMap @JvmOverloads constructor(context: Context,
     override fun onDraw(canvas: Canvas?) {
         canvas?.let {
             userLocationPixels?.let { safeUserLocation ->
+                sensorLocationPixels.forEach {
+                    canvas.drawCircle(it.x.toFloat(), it.y.toFloat(), 12.0f, outlinePaint)
+                }
                 canvas.drawCircle(safeUserLocation.x.toFloat(), safeUserLocation.y.toFloat(),
                         currentPointRadius + 2.0f, outlinePaint)
                 canvas.drawCircle(safeUserLocation.x.toFloat(), safeUserLocation.y.toFloat(),
                         currentPointRadius, secPaint)
-                sensorLocationPixels.forEach {
-                    canvas.drawCircle(it.x.toFloat(), it.y.toFloat(), 12.0f, outlinePaint)
-                }
                 sensorsDrawn = true
             }
         } ?: Timber.e("Canvas is null!")

@@ -95,4 +95,13 @@ class MainActivity : AppCompatActivity(), MainActivityView {
         }
     }
 
+    override fun clearSensorValues() {
+        runOnUiThread {
+            temperature_text.text = "-"
+            co_text.text = "-"
+            pm10_text.text = "-"
+            pm25_text.text = "-"
+        }
+    }
+
 }

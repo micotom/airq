@@ -2,7 +2,7 @@ package com.funglejunk.airq.model
 
 sealed class AirqException(msg: String) : RuntimeException(msg) {
 
-    class NoUserLocation : AirqException("Cannot determine user location")
+    class NoUserLocation : AirqException("Cannot determine user location") // TODO check for usage in main stream
 
     class AirInfoParser : AirqException("Could not parse 'Luft Jetzt' api result")
 

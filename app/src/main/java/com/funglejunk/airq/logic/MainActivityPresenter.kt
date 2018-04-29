@@ -38,6 +38,7 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
         apiSubscription = stream.start()
                 .doOnSubscribe {
                     activity.clearSensorLocations()
+                    activity.clearSensorValues()
                     activity.alphaOutIconTable()
                     activity.showLoadingAnimation()
                 }

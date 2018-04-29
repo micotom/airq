@@ -196,21 +196,26 @@
 
     </TableLayout>
 
+    <!--
     <View
         android:id="@+id/divider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="@color/colorPrimaryLight"
+        android:background="@color/colorIcons"
         android:layout_below="@id/icon_table"
         android:layout_marginTop="24dp"
         android:layout_marginBottom="24dp"
         />
+        -->
 
     <com.funglejunk.airq.view.SensorLocationMap
         android:id="@+id/sensor_map"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/divider"
+        android:layout_width="280dp"
+        android:layout_height="280dp"
+        android:layout_below="@id/icon_table"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="36dp"
+        android:background="@drawable/box"
         />
 
     <com.wang.avi.AVLoadingIndicatorView
