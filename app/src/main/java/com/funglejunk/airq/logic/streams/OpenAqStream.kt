@@ -6,9 +6,7 @@ import com.funglejunk.airq.logic.parsing.OpenAqMeasurementsResultParser
 import com.funglejunk.airq.model.AirqException
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
-import com.funglejunk.airq.model.StreamResult
 import com.funglejunk.airq.model.openaq.OpenAqMeasurementsResult
-import com.funglejunk.airq.model.openaq.OpenAqResult
 import com.funglejunk.airq.util.FuelResultMapper
 import com.funglejunk.airq.util.MeasurementFormatter
 import io.reactivex.Observable
@@ -18,13 +16,14 @@ import java.util.*
 
 class OpenAqStream(override val location: Location) : ApiStream {
 
-    override fun internalObservable(location: Location):
-            Observable<StreamResult<StandardizedMeasurement>> {
+    private val formatter = MeasurementFormatter()
+
+    override fun internalObservable(location: Location): Observable<Try<StandardizedMeasurement>> {
         Timber.d("start open aq stream")
 
         return Single.just(location).flatMap {
             val now = Calendar.getInstance().time
-            val oneHourBefore = Date(System.currentTimeMillis() - 3600 * 1000)
+            val oneHourBefore = Date(System.currentTimeMillis() - (48 * 3600 * 1000))
             OpenAqClient().getMeasurements(
                     location.latitude, location.longitude, oneHourBefore, now
             ).map {
@@ -44,21 +43,20 @@ class OpenAqStream(override val location: Location) : ApiStream {
                                 )
                     }
             )
-        }.toObservable().flatMapIterable {
+        }.toObservable().map {
             it.fold(
-                    { emptyList<OpenAqResult>() },
-                    { it.results }
+                    {
+                        Try.Failure<List<Try<StandardizedMeasurement>>>(it)
+                    },
+                    {
+                        Try.Success(formatter.map(it))
+                    }
             )
-        }.map {
-            MeasurementFormatter().map(it)
-        }.map {
+        }.flatMapIterable {
             it.fold(
-                    { StreamResult("Error formatting", false, StandardizedMeasurement.INVALID) },
-                    { StreamResult("OpenAq Result", true, it) }
+                    { emptyList<Try<StandardizedMeasurement>>() },
+                    { it }
             )
-
-        }.doFinally {
-            Timber.e("open aq finished")
         }
 
     }

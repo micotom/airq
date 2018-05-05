@@ -6,11 +6,15 @@ import android.graphics.Paint
 import android.os.Handler
 import android.support.v4.content.ContextCompat
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
 import com.funglejunk.airq.R
 import com.funglejunk.airq.logic.location.MercatorProjector
+import com.funglejunk.airq.model.Coordinates
 import com.funglejunk.airq.model.Location
+import com.funglejunk.airq.model.StandardizedMeasurement
 import timber.log.Timber
+import java.util.concurrent.TimeUnit
 
 
 class SensorLocationMap @JvmOverloads constructor(context: Context,
@@ -27,17 +31,23 @@ class SensorLocationMap @JvmOverloads constructor(context: Context,
     }
 
     private val secPaint = Paint().apply {
-        color = ContextCompat.getColor(context, R.color.colorDivider)
+        color = ContextCompat.getColor(context, R.color.colorSecondaryText)
     }
 
     private val outlinePaint = Paint().apply {
-        color = ContextCompat.getColor(context, R.color.colorPrimaryDark)
+        color = ContextCompat.getColor(context, R.color.colorPrimaryLight)
         style = Paint.Style.STROKE
         strokeWidth = 6.0f
     }
 
+    private val tapInfoRemovalHandler = Handler()
+
     private var userLocationPixels: MercatorProjector.MercatorPoint? = null
     private var sensorLocationPixels = emptyList<MercatorProjector.MercatorPoint>()
+    private var tappedSensorLocation: MercatorProjector.MercatorPoint? = null
+
+    private val pixelToSensorMap = mutableMapOf<Pair<IntRange, IntRange>,
+            StandardizedMeasurement>()
 
     private var viewHeight: Int? = null
     private var viewWidth: Int? = null
@@ -92,7 +102,15 @@ class SensorLocationMap @JvmOverloads constructor(context: Context,
         canvas?.let {
             userLocationPixels?.let { safeUserLocation ->
                 sensorLocationPixels.forEach {
-                    canvas.drawCircle(it.x.toFloat(), it.y.toFloat(), 12.0f, outlinePaint)
+                    val paint = tappedSensorLocation?.let { tapped ->
+                        if (it.x == tapped.x && it.y == tapped.y) {
+                            secPaint
+                        }
+                        else {
+                            outlinePaint
+                        }
+                    } ?: outlinePaint
+                    canvas.drawCircle(it.x.toFloat(), it.y.toFloat(), 12.0f, paint)
                 }
                 canvas.drawCircle(safeUserLocation.x.toFloat(), safeUserLocation.y.toFloat(),
                         currentPointRadius + 2.0f, outlinePaint)
@@ -103,7 +121,8 @@ class SensorLocationMap @JvmOverloads constructor(context: Context,
         } ?: Timber.e("Canvas is null!")
     }
 
-    fun setLocations(userLocation: Location, sensorLocations: List<Location>) {
+    fun setLocations(userLocation: Location, sensorLocations: List<Location>,
+                     measurements: List<StandardizedMeasurement>) {
         viewWidth?.let { safeWidth ->
 
             userLocationPixels = MercatorProjector.getPixelWithScaleFactor(userLocation, scale, safeWidth)
@@ -121,12 +140,24 @@ class SensorLocationMap @JvmOverloads constructor(context: Context,
                 safeUserLocation.x -= normalized.first
                 safeUserLocation.y -= normalized.second
 
-                sensorLocationPixels = sensorLocations.map {
-                    val point = MercatorProjector.getPixelWithScaleFactor(it, scale, safeWidth)
+                sensorLocationPixels = sensorLocations.map { sensorLocation ->
+                    val point = MercatorProjector.getPixelWithScaleFactor(sensorLocation, scale,
+                            safeWidth)
                     point.x -= normalized.first
                     point.y -= normalized.second
+
+                    val touchRadius = 30
+                    pixelToSensorMap[Pair(
+                            IntRange((point.x - touchRadius).toInt(), (point.x + touchRadius).toInt()),
+                            IntRange((point.y - touchRadius).toInt(), (point.y + touchRadius).toInt()))] =
+                            measurements.find {
+                                it.coordinates == Coordinates(sensorLocation.latitude,
+                                        sensorLocation.longitude)
+                            }!!
+
                     point
                 }
+
                 invalidate()
 
             } ?: Timber.e("user location was changed to null")
@@ -137,6 +168,33 @@ class SensorLocationMap @JvmOverloads constructor(context: Context,
         userLocationPixels = null
         sensorsDrawn = false
         invalidate()
+    }
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        return event?.let {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    val sensorKey = pixelToSensorMap.keys.find {
+                        event.x in it.first && event.y in it.second
+                    }
+                    tappedSensorLocation = sensorLocationPixels.find {
+                        event.x in IntRange((it.x - 30).toInt(), (it.x + 30).toInt()) &&
+                                event.y in IntRange((it.y - 30).toInt(), (it.y + 30).toInt())
+                    }
+                    val measurement= pixelToSensorMap[sensorKey]
+                    measurement?.let {
+                        (context as MainActivityView).displayMeasurementOnTap(measurement)
+                        tapInfoRemovalHandler.removeCallbacksAndMessages(null)
+                        tapInfoRemovalHandler.postDelayed({
+                            (context as MainActivityView).hideMeasurementOnTap()
+                            tappedSensorLocation = null
+                        }, TimeUnit.SECONDS.toMillis(5))
+                        true
+                    } ?: false
+                }
+                else -> false
+            }
+        } == true
     }
 
 }

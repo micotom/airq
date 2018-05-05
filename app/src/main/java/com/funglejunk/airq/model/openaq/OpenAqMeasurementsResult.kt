@@ -5,14 +5,7 @@ import com.squareup.moshi.Json
 data class OpenAqMeasurementsResult(
         @Json(name = "meta") val meta: OpenAqMeta,
         @Json(name = "results") val results: List<OpenAqResult>
-) {
-    companion object {
-        val NONE = OpenAqMeasurementsResult(
-                OpenAqMeta("", "", "", -1, -1, -1),
-                emptyList<OpenAqResult>()
-        )
-    }
-}
+)
 
 data class OpenAqResult(
         @Json(name = "location") val location: String,

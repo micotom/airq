@@ -1,70 +1,92 @@
 package com.funglejunk.airq.util
 
-import android.annotation.SuppressLint
-import arrow.core.Option
-import com.funglejunk.airq.model.Coordinates
-import com.funglejunk.airq.model.SensorClass
-import com.funglejunk.airq.model.StandardizedMeasurement
+import arrow.core.Try
+import com.funglejunk.airq.model.*
 import com.funglejunk.airq.model.airinfo.AirInfoMeasurement
-import com.funglejunk.airq.model.openaq.OpenAqResult
+import com.funglejunk.airq.model.openaq.OpenAqMeasurementsResult
+import timber.log.Timber
 import java.text.SimpleDateFormat
+import java.util.*
 
 class MeasurementFormatter {
 
-    @SuppressLint("SimpleDateFormat")
-    private val openAqDateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ") // TODO calc local time!
-    @SuppressLint("SimpleDateFormat")
-    private val airInfoDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    private val openAqDateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ",
+            Locale.getDefault())
+    private val airInfoDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
+            Locale.getDefault())
 
-    fun map(measurement: OpenAqResult): Option<StandardizedMeasurement> {
-        return try {
-            val fm = StandardizedMeasurement(
-                    openAqDateFormat.parse(measurement.date.local),
-                    when (measurement.parameter) {
-                        "pm25" -> SensorClass.PM25
-                        "pm10" -> SensorClass.PM10
-                        "o3" -> SensorClass.O3
-                        "co" -> SensorClass.CO2
-                        else -> throw IllegalArgumentException("Unknown sensor class: " +
-                                measurement.parameter)
-                    },
-                    measurement.value,
-                    Coordinates( measurement.coordinates.latitude, measurement.coordinates.longitude)
-            )
-            Option.just(fm)
-        } catch (e: IllegalArgumentException) {
-            Option.empty<StandardizedMeasurement>()
-        }
-    }
+    fun map(openAqMeasurements: OpenAqMeasurementsResult): List<Try<StandardizedMeasurement>> {
+        val groupedByLocations = openAqMeasurements.results.groupBy { it.coordinates }
 
-    fun map(measurement: AirInfoMeasurement): Set<StandardizedMeasurement> {
-        return try {
-            val measurements = mutableSetOf<StandardizedMeasurement>()
-            measurement.sensorDataValues?.forEach { value ->
-                val sensorClass = when(value.valueType) {
-                    "P2" -> SensorClass.PM25
-                    "P1" -> SensorClass.PM10
-                    "humidity" -> SensorClass.HUMIDITY
-                    "temperature" -> SensorClass.TEMPERATURE
-                    "pressure_at_sealevel", "pressure" -> SensorClass.BAROMETER
+        val returnList = mutableListOf<Try<StandardizedMeasurement>>()
+
+        groupedByLocations.entries.forEach { (location, results) ->
+            val measurements = mutableListOf<Measurement>()
+            results.forEach { result ->
+                val sensor = when (result.parameter) {
+                    "pm25" -> SensorClass.PM25
+                    "pm10" -> SensorClass.PM10
+                    "o3" -> SensorClass.O3
+                    "co" -> SensorClass.CO2
                     else -> SensorClass.UNKNOWN
                 }
-                when (sensorClass) {
-                    SensorClass.UNKNOWN -> {}
+                when (sensor) {
+                    SensorClass.UNKNOWN -> Timber.w("unknown sensor value: ${result.parameter}")
                     else -> {
-                        val fm = StandardizedMeasurement(
-                                airInfoDateFormat.parse(measurement.timestamp),
-                                sensorClass,
-                                value.value,
-                                Coordinates(measurement.location.latitude, measurement.location.longitude)
-                        )
-                        measurements.add(fm)
+                        val value = result.value
+                        measurements.add(Measurement(sensor, value))
                     }
                 }
             }
-            measurements
-        } catch (e: Exception) {
-            emptySet()
+            val newest = results.maxBy { it.date.local }
+            returnList.add(
+                    newest?.let {
+                        val coordinates = Coordinates(location.latitude, location.longitude)
+                        val formattedDate = openAqDateFormat.parse(newest.date.local)
+                        Try.Success(
+                                StandardizedMeasurement(formattedDate, measurements, coordinates,
+                                        ApiSource.OPEN_AQ)
+                        )
+                    } ?: Try.Failure(AirqException.NoOpenAqDateMeasurement())
+            )
+        }
+
+        return returnList
+    }
+
+    fun map(measurements: List<Try<AirInfoMeasurement>>): List<Try<StandardizedMeasurement>> {
+        return measurements.map {
+            it.fold(
+                    {
+                        Try.Failure<StandardizedMeasurement>(it)
+                    },
+                    { measurement ->
+                        val date = airInfoDateFormat.parse(measurement.timestamp)
+                        val coordinates = Coordinates(
+                                measurement.location.latitude, measurement.location.longitude
+                        )
+                        val values = measurement.sensorDataValues?.map {
+                            val sensorType = when (it.valueType) {
+                                "P2" -> SensorClass.PM25
+                                "P1" -> SensorClass.PM10
+                                "humidity" -> SensorClass.HUMIDITY
+                                "temperature" -> SensorClass.TEMPERATURE
+                                "pressure_at_sealevel", "pressure" -> SensorClass.BAROMETER
+                                else -> SensorClass.UNKNOWN
+                            }
+                            val value = it.value
+                            Measurement(sensorType, value)
+                        }
+                        when (values) {
+                            null -> Try.Failure<StandardizedMeasurement>(
+                                    AirqException.NoAirInfoMeasurement()
+                            )
+                            else -> Try.Success(StandardizedMeasurement(
+                                    date, values, coordinates, ApiSource.AIR_INFO)
+                            )
+                        }
+                    }
+            )
         }
     }
 

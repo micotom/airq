@@ -2,19 +2,10 @@ package com.funglejunk.airq.model
 
 import java.util.*
 
-data class StandardizedMeasurement(val date: Date, val sensorType: SensorClass, val value: Double,
-                                   val coordinates: Coordinates) {
+data class StandardizedMeasurement(val date: Date, val measurements: List<Measurement>,
+                                   val coordinates: Coordinates, val source: ApiSource)
 
-    companion object {
-        val INVALID = StandardizedMeasurement(
-                Calendar.getInstance().time,
-                SensorClass.UNKNOWN,
-                0.0,
-                Coordinates(0.0, 0.0)
-        )
-    }
-
-}
+data class Measurement(val sensorType: SensorClass, val value: Double)
 
 enum class SensorClass {
     TEMPERATURE,
@@ -28,3 +19,8 @@ enum class SensorClass {
 }
 
 data class Coordinates(val lat: Double, val lon: Double)
+
+enum class ApiSource {
+    OPEN_AQ,
+    AIR_INFO
+}

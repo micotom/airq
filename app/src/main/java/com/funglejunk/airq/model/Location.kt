@@ -21,16 +21,4 @@ data class Location(val latitude: Double, val longitude: Double) {
         )
     }
 
-    fun bearingInRadians(otherLocation: Location): Double {
-        val srcLat = Math.toRadians(latitude)
-        val dstLat = Math.toRadians(otherLocation.latitude)
-        val dLng = Math.toRadians(otherLocation.longitude - longitude)
-        return Math.atan2(Math.sin(dLng) * Math.cos(dstLat),
-                Math.cos(srcLat) * Math.sin(dstLat) - Math.sin(srcLat) * Math.cos(dstLat) * Math.cos(dLng))
-    }
-
-    fun bearingInDegrees(otherLocation: Location): Double {
-        return Math.toDegrees((bearingInRadians(otherLocation) + Math.PI) % Math.PI)
-    }
-
 }

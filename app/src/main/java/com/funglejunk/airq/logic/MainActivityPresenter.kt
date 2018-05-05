@@ -1,5 +1,6 @@
 package com.funglejunk.airq.logic
 
+import arrow.core.Try
 import com.funglejunk.airq.logic.location.Geocoder
 import com.funglejunk.airq.logic.location.LocationProvider
 import com.funglejunk.airq.logic.location.permission.PermissionHelperInterface
@@ -10,7 +11,6 @@ import com.funglejunk.airq.logic.streams.MainStream
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.SensorClass
 import com.funglejunk.airq.model.StandardizedMeasurement
-import com.funglejunk.airq.model.StreamResult
 import com.funglejunk.airq.util.roundTo2Decimals
 import com.funglejunk.airq.view.MainActivityView
 import io.reactivex.disposables.Disposable
@@ -45,56 +45,71 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                 .observeOn(Schedulers.io())
                 .subscribeOn(Schedulers.io())
                 .doOnEvent { event, _ ->
-                    if (event.isNotEmpty()) {
-                        val userLocation = event.first().content.second
-                        val sensorLocations = event
-                                .distinctBy {
-                                    it.content.first.coordinates
+                    event.fold(
+                            {
+                                Timber.e("cannot display sensor locations")
+                            },
+                            { streamResults ->
+                                if (streamResults.isNotEmpty()) {
+                                    val userLocation = streamResults.first().second
+                                    val sensorLocations = streamResults
+                                            .distinctBy {
+                                                it.first.coordinates
+                                            }
+                                            .map {
+                                                val (lat, lng) = it.first.coordinates
+                                                Location(lat, lng)
+                                            }
+                                    val measurements = streamResults
+                                            .map {
+                                                it.first
+                                            }
+                                            .distinctBy {
+                                                it.coordinates
+                                            }
+                                    activity.displaySensorLocations(userLocation, sensorLocations, measurements)
                                 }
-                                .map {
-                                    val (lat, lng) = it.content.first.coordinates
-                                    Location(lat, lng)
+                            }
+                    )
+                }
+                .map {
+                    it.fold(
+                            {
+                                Try.Failure<List<Pair<StandardizedMeasurement, Double>>>(it)
+                            },
+                            { results ->
+                                val measurementDistancePair = results.map { result ->
+                                    val (measurement, _, distanceToLocation) = result
+                                    Pair(measurement, distanceToLocation)
                                 }
-                        activity.displaySensorLocations(userLocation, sensorLocations)
-                    }
+                                Try.Success(measurementDistancePair)
+                            }
+                    )
+
                 }
-                .map { results ->
-                    results.map { result ->
-                        val (measurement, _, distanceToLocation) = result.content
-                        StreamResult(result.info, result.success, Pair(measurement, distanceToLocation))
-                    }
-                }
-                .doOnEvent { results, _ ->
-
-                    fun List<StandardizedMeasurement>.getAv(sensorClass: SensorClass): Double {
-                        val values = filter { it.sensorType == sensorClass }
-                        val av = when (values.isNotEmpty()) {
-                            true -> values.map { it.value }.average()
-                            else -> Double.NaN
-                        }
-                        return when (av) {
-                            Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY -> Double.NaN
-                            else -> av.roundTo2Decimals()
-                        }
-                    }
-
-                    val measurements = results.map {
-                        it.content.first
-                    }
-
-                    val avTemp = measurements.getAv(SensorClass.TEMPERATURE)
-                    val avHumidity = measurements.getAv(SensorClass.HUMIDITY)
-                    val avPm10 = measurements.getAv(SensorClass.PM10)
-                    val avPm25 = measurements.getAv(SensorClass.PM25)
-                    val avCo2 = measurements.getAv(SensorClass.CO2)
-                    val avPressure = measurements.getAv(SensorClass.BAROMETER)
-
-                    with(activity) {
-                        setTemperatureValue(avTemp)
-                        setCo2Value(avCo2)
-                        setPm10Value(avPm10)
-                        setPm25Value(avPm25)
-                    }
+                .doOnEvent { event, _ ->
+                    event.fold(
+                            {
+                                Timber.e("Cannot calculate and display sensor values")
+                            },
+                            { measurementDistancePair ->
+                                val measurements = measurementDistancePair.map {
+                                    it.first
+                                }
+                                val avTemp = measurements.getAv(SensorClass.TEMPERATURE)
+                                val avHumidity = measurements.getAv(SensorClass.HUMIDITY)
+                                val avPm10 = measurements.getAv(SensorClass.PM10)
+                                val avPm25 = measurements.getAv(SensorClass.PM25)
+                                val avCo2 = measurements.getAv(SensorClass.CO2)
+                                val avPressure = measurements.getAv(SensorClass.BAROMETER)
+                                with(activity) {
+                                    setTemperatureValue(avTemp)
+                                    setCo2Value(avCo2)
+                                    setPm10Value(avPm10)
+                                    setPm25Value(avPm25)
+                                }
+                            }
+                    )
                 }
                 .doFinally {
                     activity.hideLoadingAnimation()
@@ -113,6 +128,23 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
             if (!safe.isDisposed) {
                 safe.dispose()
             }
+        }
+    }
+
+    private fun List<StandardizedMeasurement>.getAv(sensorClass: SensorClass): Double {
+        val values = flatMap {
+            it.measurements.filter {
+                it.sensorType == sensorClass
+            }
+        }
+
+        val av = when (values.isNotEmpty()) {
+            true -> values.map { it.value }.average()
+            else -> Double.NaN
+        }
+        return when (av) {
+            Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY -> Double.NaN
+            else -> av.roundTo2Decimals()
         }
     }
 

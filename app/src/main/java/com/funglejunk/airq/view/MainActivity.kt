@@ -6,6 +6,7 @@ import com.funglejunk.airq.R
 import com.funglejunk.airq.logic.MainActivityPresenterInterface
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
 import com.funglejunk.airq.model.Location
+import com.funglejunk.airq.model.StandardizedMeasurement
 import kotlinx.android.synthetic.main.activity_main.*
 import org.koin.android.ext.android.inject
 
@@ -83,9 +84,10 @@ class MainActivity : AppCompatActivity(), MainActivityView {
         }
     }
 
-    override fun displaySensorLocations(userLocation: Location, sensorLocations: List<Location>) {
+    override fun displaySensorLocations(userLocation: Location, sensorLocations: List<Location>,
+                                        measurements: List<StandardizedMeasurement>) {
         runOnUiThread {
-            sensor_map.setLocations(userLocation, sensorLocations)
+            sensor_map.setLocations(userLocation, sensorLocations, measurements)
         }
     }
 
@@ -102,6 +104,21 @@ class MainActivity : AppCompatActivity(), MainActivityView {
             pm10_text.text = "-"
             pm25_text.text = "-"
         }
+    }
+
+    override fun hideMeasurementOnTap() {
+        sensor_info_text.text = ""
+    }
+
+    override fun displayMeasurementOnTap(measurement: StandardizedMeasurement) {
+        val sensorInfo = "${measurement.date}\n${measurement.coordinates.lat}, " +
+                "${measurement.coordinates.lon}\n"
+        val builder = StringBuilder().apply {
+            measurement.measurements.forEach {
+                append("${it.sensorType}: ${it.value}\n")
+            }
+        }
+        sensor_info_text.text = sensorInfo + builder.toString()
     }
 
 }

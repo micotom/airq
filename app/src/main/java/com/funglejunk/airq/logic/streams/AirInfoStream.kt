@@ -5,7 +5,7 @@ import com.funglejunk.airq.logic.parsing.AirInfoJsonParser
 import com.funglejunk.airq.model.AirqException
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
-import com.funglejunk.airq.model.StreamResult
+import com.funglejunk.airq.model.airinfo.AirInfoLocation
 import com.funglejunk.airq.model.airinfo.AirInfoMeasurement
 import com.funglejunk.airq.util.FuelResultMapper
 import com.funglejunk.airq.util.MeasurementFormatter
@@ -22,8 +22,9 @@ class AirInfoStream(override val location: Location) : ApiStream {
         const val API_ENDPOINT = "http://api.luftdaten.info/static/v1/data.json"
     }
 
-    override fun internalObservable(location: Location):
-            Observable<StreamResult<StandardizedMeasurement>> {
+    private val formatter = MeasurementFormatter()
+
+    override fun internalObservable(location: Location): Observable<Try<StandardizedMeasurement>> {
 
         return Single.just(location).flatMap {
             Timber.d("start air info stream")
@@ -49,33 +50,54 @@ class AirInfoStream(override val location: Location) : ApiStream {
                         )
                     }
             )
-        }.toObservable().map { result ->
-            result.fold(
+        }.map {
+            it.fold(
                     { Try.Failure<List<AirInfoMeasurement>>(it) },
                     {
-                        val groupedBySensorId = it.groupBy { it.sensor.id }
-                        val sortedByDate = groupedBySensorId.map {
-                            it.value.sortedBy { it.timestamp }.last()
+                        val nearbyMeasurements = it.filter {
+                            val sensorLocation = Location(it.location.latitude, it.location.longitude)
+                            val androidUserLocation = Location(location.latitude, location.longitude)
+                            sensorLocation.distanceTo(androidUserLocation) < 2500.0f
                         }
-                        Try.Success(sortedByDate)
+                        Try.Success(nearbyMeasurements)
                     }
             )
-        }.flatMapIterable { result ->
+        }.toObservable().map { result ->
             result.fold(
-                    { emptyList<AirInfoMeasurement>() },
+                    { Try.Failure<Map<AirInfoLocation, List<AirInfoMeasurement>>>(it) },
+                    {
+                        val locationsGrouped = it.groupBy { it.location }
+                        Try.Success(locationsGrouped)
+                    }
+            )
+        }.map {
+            it.fold(
+                    { Try.Failure<List<Try<AirInfoMeasurement>>>(it)},
+                    {
+                        val latestMeasurements = mutableListOf<Try<AirInfoMeasurement>>()
+                        it.entries.forEach {
+                            val latest = it.value.maxBy { it.timestamp }
+                            latestMeasurements.add(
+                                latest?.let {
+                                    Try.Success(it)
+                                } ?: Try.Failure(AirqException.NoStandardizedMeasurement())
+                            )
+                        }
+                        Try.Success(latestMeasurements)
+                    }
+            )
+        }.map {
+            it.fold(
+                    { Try.Failure<List<Try<StandardizedMeasurement>>>(it) },
+                    {
+                        Try.Success(formatter.map(it))
+                    }
+            )
+        }.flatMapIterable {
+            it.fold(
+                    { emptyList<Try<StandardizedMeasurement>>() },
                     { it }
             )
-        }.filter {
-            val sensorLocation = Location(it.location.latitude, it.location.longitude)
-            val androidUserLocation = Location(location.latitude, location.longitude)
-            sensorLocation.distanceTo(androidUserLocation) < 2500.0f
-        }.map {
-            Timber.d("air info result: ${it}")
-            MeasurementFormatter().map(it).map {
-                StreamResult("Air Info result", true, it)
-            }
-        }.flatMapIterable {
-            it
         }
 
     }

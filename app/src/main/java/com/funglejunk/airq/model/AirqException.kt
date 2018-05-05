@@ -14,4 +14,10 @@ sealed class AirqException(msg: String) : RuntimeException(msg) {
 
     class InvalidLastKnownLocation : AirqException("Invalid last known location")
 
+    class NoStandardizedMeasurement : AirqException("Cannot standardize measurement")
+
+    class NoAirInfoMeasurement : AirqException("No measurements in api object")
+
+    class NoOpenAqDateMeasurement : AirqException("No latest date in open aq object")
+
 }

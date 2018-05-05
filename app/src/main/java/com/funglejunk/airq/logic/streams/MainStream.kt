@@ -10,7 +10,7 @@ import com.funglejunk.airq.logic.net.NetworkHelper
 import com.funglejunk.airq.model.AirqException
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
-import com.funglejunk.airq.model.StreamResult
+import com.funglejunk.airq.util.filterForSuccess
 import com.funglejunk.airq.util.zipToPair
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -23,18 +23,22 @@ class MainStream(private val permissionListener: RxPermissionListener,
                  private val geoCoder: Geocoder,
                  private val airNowClient: AirNowClientInterface) {
 
-    fun start(): Single<List<StreamResult<Triple<StandardizedMeasurement, Location, Double>>>> {
-        Timber.d("starting stream ...")
-        return Single.fromCallable { permissionHelper.check() }
-                .flatMap {
-                    Timber.d("listen for location permission")
-                    permissionListener.listen().first(false)
-                }
+    fun start(): Single<Try<List<Triple<StandardizedMeasurement, Location, Double>>>> {
+        return Single.just { Timber.d("starting stream ...") }
                 .map {
-                    when (it) {
-                        true -> Try.Success(it)
-                        false -> Try.Failure<Boolean>(AirqException.NoLocationPermission())
-                    }
+                    permissionHelper.check()
+                }
+                .doOnEvent { _, _ ->
+                    Timber.d("listen for location permission")
+                }
+                .flatMap {
+                    permissionListener.listen().first(false)
+                            .map {
+                                when (it) {
+                                    true -> Try.Success(it)
+                                    false -> Try.Failure<Boolean>(AirqException.NoLocationPermission())
+                                }
+                            }
                 }
                 .doOnEvent { event, _ ->
                     Timber.d(event.toString())
@@ -49,19 +53,18 @@ class MainStream(private val permissionListener: RxPermissionListener,
                     Timber.d(event.toString())
                 }
                 .map {
-                    it.fold(
-                            { Try.Failure<Boolean>(it) },
-                            {
-                                when (it) {
-                                    true -> Try.Success(true)
-                                    false -> Try.Failure<Boolean>(AirqException.NoNetwork())
-                                }
-                            }
-                    )
+                    it.flatMap {
+                        when (it) {
+                            true -> Try.Success(true)
+                            false -> Try.Failure<Boolean>(AirqException.NoNetwork())
+                        }
+                    }
                 }
                 .flatMap {
                     it.fold(
-                            { Single.just(Try.Failure<Location>(it)) },
+                            {
+                                Single.just(Try.Failure<Location>(AirqException.InvalidLastKnownLocation()))
+                            },
                             {
                                 locationProvider.getLastKnownLocation().map {
                                     when (it.isValid) {
@@ -77,57 +80,83 @@ class MainStream(private val permissionListener: RxPermissionListener,
                 }
                 .flatMap {
                     it.fold(
-                            { Single.never<Pair<List<StreamResult<StandardizedMeasurement>>, Location>>() },
+                            {
+                                Single.just(Pair(emptyList<Try<StandardizedMeasurement>>(),
+                                        Try.Failure<Location>(it)))
+                            },
                             {
                                 zipToPair(
                                         Observable.concat(
+                                                listOf(
                                                 AirInfoStream(it).observable(),
                                                 OpenAqStream(it).observable()
+                                                )
                                         ).toList(),
-                                        Single.just(it)
+                                        Single.just(Try.Success(it))
+                                )
+                            }
+                    )
+
+                }
+                .map {
+                    val measurementTriesList = it.first
+                    val locationTry = it.second
+                    locationTry.fold(
+                            { Try.Failure<Triple<List<StandardizedMeasurement>, Location, List<Double>>>(it) },
+                            { userLocation ->
+                                val measurements = measurementTriesList.filterForSuccess()
+                                val distances = measurements.map {
+                                    Location(it.coordinates.lat, it.coordinates.lon)
+                                            .distanceTo(userLocation)
+                                }
+                                Try.Success(Triple(measurements, userLocation, distances))
+                            }
+                    )
+                }
+                .map {
+                    it.fold(
+                            { Try.Failure<Pair<List<Pair<StandardizedMeasurement, Double>>, Location>>(it) },
+                            { result ->
+                                Try.Success(
+                                        Pair(result.first.mapIndexed { index, measurement ->
+                                            Pair(measurement, result.third[index])
+                                        }, result.second)
                                 )
                             }
                     )
                 }
-                .map { (measurementResultList, userLocation) ->
-                    StreamResult(
-                            "Combined with distance",
-                            true,
-                            Triple(
-                                    measurementResultList,
-                                    userLocation,
-                                    measurementResultList.map {
-                                        val measurement = it.content
-                                        val measurementLocation = Location(measurement.coordinates.lat,
-                                                measurement.coordinates.lon)
-                                        measurementLocation.distanceTo(userLocation)
-                                    }
-                            )
+                .map {
+                    it.fold(
+                            { Try.Failure<Pair<List<Pair<StandardizedMeasurement, Double>>, Location>>(it) },
+                            {
+                                val (measurementsWithDouble, userLocation) = it
+                                val sorted = measurementsWithDouble.sortedBy { it.second }
+                                Try.Success(Pair(sorted, userLocation))
+                            }
                     )
                 }
-                .map { streamResult ->
-                    StreamResult(streamResult.info, true,
-                            Pair(streamResult.content.first.mapIndexed { index, measurementResult ->
-                                Pair(measurementResult.content, streamResult.content.third[index])
-                            }, streamResult.content.second))
-                }
-                .map { streamResult ->
-                    val (measurementsWithDouble, userLocation) = streamResult.content
-                    val sorted = measurementsWithDouble.sortedBy { it.second }
-                    StreamResult("Combined and sorted", true, Pair(sorted, userLocation))
-                }
-                .map { streamResult ->
-                    streamResult.content.first.map {
-                        StreamResult("Finished", true,
-                                Triple(it.first, streamResult.content.second, it.second))
-                    }
+                .map {
+                    it.fold(
+                            { Try.Failure<List<Triple<StandardizedMeasurement, Location, Double>>>(it) },
+                            {
+                                val location = it.second
+                                val r = it.first.map {
+                                    Triple(it.first, location, it.second)
+                                }
+                                Try.Success(r)
+                            }
+                    )
                 }
                 .doOnEvent { e, _ ->
-                    e.forEach {
-                        Timber.d("reporting: ${it.content.first}")
-                    }
+                    e.fold(
+                            { Timber.e("report: $it") },
+                            {
+                                it.forEach {
+                                    Timber.d("reporting: ${it.first}")
+                                }
+                            }
+                    )
                 }
-
     }
 
 }

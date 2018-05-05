@@ -1,5 +1,6 @@
 package com.funglejunk.airq.util
 
+import arrow.core.Try
 import io.reactivex.Single
 import io.reactivex.functions.BiFunction
 import timber.log.Timber
@@ -26,4 +27,10 @@ fun Double.roundTo2Decimals() = try {
 } catch (e: NumberFormatException) {
     Timber.e("cannot round: $this")
     Double.NaN
+}
+
+fun <T> Collection<Try<T>>.filterForSuccess() = filter {
+    it.isSuccess()
+}.map {
+    (it as Try.Success).value
 }

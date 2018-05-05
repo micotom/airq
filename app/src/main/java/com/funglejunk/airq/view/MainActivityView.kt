@@ -1,6 +1,7 @@
 package com.funglejunk.airq.view
 
 import com.funglejunk.airq.model.Location
+import com.funglejunk.airq.model.StandardizedMeasurement
 
 interface MainActivityView {
 
@@ -20,10 +21,15 @@ interface MainActivityView {
 
     fun alphaInIconTable()
 
-    fun displaySensorLocations(userLocation: Location, sensorLocations: List<Location>)
+    fun displaySensorLocations(userLocation: Location, sensorLocations: List<Location>,
+                               measurements: List<StandardizedMeasurement>)
 
     fun clearSensorLocations()
 
     fun clearSensorValues()
+
+    fun displayMeasurementOnTap(measurement: StandardizedMeasurement)
+
+    fun hideMeasurementOnTap()
 
 }
