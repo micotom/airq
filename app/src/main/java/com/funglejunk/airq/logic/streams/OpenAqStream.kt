@@ -7,8 +7,8 @@ import com.funglejunk.airq.model.AirqException
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.model.openaq.OpenAqMeasurementsResult
-import com.funglejunk.airq.util.FuelResultMapper
 import com.funglejunk.airq.util.MeasurementFormatter
+import com.funglejunk.airq.util.mapToTry
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
@@ -29,10 +29,7 @@ class OpenAqStream(override val location: Location,
             openAqClient.getMeasurements(
                     location.latitude, location.longitude, oneHourBefore, now
             ).map {
-                FuelResultMapper.map(it,
-                        { Try.Success(it) },
-                        { Try.Failure<String>(it.exception) }
-                )
+                it.mapToTry()
             }
         }.map {
             it.fold(

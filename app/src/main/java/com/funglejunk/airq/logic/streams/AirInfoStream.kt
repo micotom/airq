@@ -8,8 +8,8 @@ import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.model.airinfo.AirInfoLocation
 import com.funglejunk.airq.model.airinfo.AirInfoMeasurement
-import com.funglejunk.airq.util.FuelResultMapper
 import com.funglejunk.airq.util.MeasurementFormatter
+import com.funglejunk.airq.util.mapToTry
 import io.reactivex.Observable
 import io.reactivex.Single
 import timber.log.Timber
@@ -25,10 +25,7 @@ class AirInfoStream(override val location: Location,
             Timber.d("start air info stream")
             client.getMeasurements()
                     .map {
-                        FuelResultMapper.map(it,
-                                { Try.Success(it) },
-                                { Try.Failure<String>(it.exception) }
-                        )
+                        it.mapToTry()
                     }
         }.map {
             Timber.d("received air info content")

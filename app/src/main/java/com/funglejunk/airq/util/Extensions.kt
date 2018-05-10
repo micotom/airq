@@ -1,6 +1,9 @@
 package com.funglejunk.airq.util
 
 import arrow.core.Try
+import com.github.kittinunf.fuel.core.FuelError
+import com.github.kittinunf.fuel.core.Response
+import com.github.kittinunf.result.Result
 import io.reactivex.Single
 import io.reactivex.functions.BiFunction
 import timber.log.Timber
@@ -33,4 +36,12 @@ fun <T> Collection<Try<T>>.filterForSuccess() = filter {
     it.isSuccess()
 }.map {
     (it as Try.Success).value
+}
+
+fun Pair<Response, Result<String, FuelError>>.mapToTry(): Try<String> {
+    val (_, result) = this
+    return when (result) {
+        is Result.Failure -> Try.Failure(result.error)
+        is Result.Success -> Try.Success(result.value)
+    }
 }
