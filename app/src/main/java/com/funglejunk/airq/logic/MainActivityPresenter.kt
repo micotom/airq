@@ -5,8 +5,10 @@ import com.funglejunk.airq.logic.location.Geocoder
 import com.funglejunk.airq.logic.location.LocationProvider
 import com.funglejunk.airq.logic.location.permission.PermissionHelperInterface
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
+import com.funglejunk.airq.logic.net.AirInfoClientInterface
 import com.funglejunk.airq.logic.net.AirNowClientInterface
 import com.funglejunk.airq.logic.net.NetworkHelper
+import com.funglejunk.airq.logic.net.OpenAqClientInterface
 import com.funglejunk.airq.logic.streams.MainStream
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.SensorClass
@@ -22,7 +24,9 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                             networkHelper: NetworkHelper,
                             locationProvider: LocationProvider,
                             geoCoder: Geocoder,
-                            airNowClient: AirNowClientInterface) :
+                            airNowClient: AirNowClientInterface,
+                            airInfoClient: AirInfoClientInterface,
+                            openAqClient: OpenAqClientInterface) :
         MainActivityPresenterInterface {
 
     private var apiSubscription: Disposable? = null
@@ -32,7 +36,9 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
             networkHelper,
             locationProvider,
             geoCoder,
-            airNowClient)
+            airNowClient,
+            airInfoClient,
+            openAqClient)
 
     override fun viewStarted(activity: MainActivityView) {
         apiSubscription = stream.start()

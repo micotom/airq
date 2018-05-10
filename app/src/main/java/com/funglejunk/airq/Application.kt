@@ -9,10 +9,7 @@ import com.funglejunk.airq.logic.location.Geocoder
 import com.funglejunk.airq.logic.location.LocationProvider
 import com.funglejunk.airq.logic.location.permission.AndroidPermissionHelper
 import com.funglejunk.airq.logic.location.permission.PermissionHelperInterface
-import com.funglejunk.airq.logic.net.AirNowClient
-import com.funglejunk.airq.logic.net.AirNowClientInterface
-import com.funglejunk.airq.logic.net.AndroidNetworkHelper
-import com.funglejunk.airq.logic.net.NetworkHelper
+import com.funglejunk.airq.logic.net.*
 import org.koin.android.ext.android.startKoin
 import org.koin.dsl.module.Module
 import timber.log.Timber
@@ -28,6 +25,8 @@ class Application : MultiDexApplication() {
         bean { params -> AndroidLocationProvider(params["context"]) as LocationProvider }
         bean { params -> AndroidGeocoder(params["context"]) as Geocoder }
         bean { AirNowClient() as AirNowClientInterface }
+        bean { AirInfoClient() as AirInfoClientInterface }
+        bean { OpenAqClient() as OpenAqClientInterface }
         bean { params -> MainActivityPresenter(
                 // params["activity"],
                 params["permissionListener"],
@@ -35,6 +34,8 @@ class Application : MultiDexApplication() {
                 get(parameters = { params.values }),
                 get(parameters = { params.values }),
                 get(parameters = { params.values }),
+                get(),
+                get(),
                 get())
                 as MainActivityPresenterInterface }
     }

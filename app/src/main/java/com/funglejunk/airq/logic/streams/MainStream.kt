@@ -5,8 +5,10 @@ import com.funglejunk.airq.logic.location.Geocoder
 import com.funglejunk.airq.logic.location.LocationProvider
 import com.funglejunk.airq.logic.location.permission.PermissionHelperInterface
 import com.funglejunk.airq.logic.location.permission.RxPermissionListener
+import com.funglejunk.airq.logic.net.AirInfoClientInterface
 import com.funglejunk.airq.logic.net.AirNowClientInterface
 import com.funglejunk.airq.logic.net.NetworkHelper
+import com.funglejunk.airq.logic.net.OpenAqClientInterface
 import com.funglejunk.airq.model.AirqException
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
@@ -21,7 +23,9 @@ class MainStream(private val permissionListener: RxPermissionListener,
                  private val networkHelper: NetworkHelper,
                  private val locationProvider: LocationProvider,
                  private val geoCoder: Geocoder,
-                 private val airNowClient: AirNowClientInterface) {
+                 private val airNowClient: AirNowClientInterface,
+                 private val airInfoClient: AirInfoClientInterface,
+                 private val openAqClient: OpenAqClientInterface) {
 
     fun start(): Single<Try<List<Triple<StandardizedMeasurement, Location, Double>>>> {
         return Single.just { Timber.d("starting stream ...") }
@@ -88,8 +92,8 @@ class MainStream(private val permissionListener: RxPermissionListener,
                                 zipToPair(
                                         Observable.concat(
                                                 listOf(
-                                                AirInfoStream(it).observable(),
-                                                OpenAqStream(it).observable()
+                                                AirInfoStream(it, airInfoClient).observable(),
+                                                OpenAqStream(it, openAqClient).observable()
                                                 )
                                         ).toList(),
                                         Single.just(Try.Success(it))
