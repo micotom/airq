@@ -4,8 +4,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/gradient_background"
     tools:context="com.funglejunk.airq.view.MainActivity"
+    android:background="#ffffff"
     android:padding="24dp">
 
     <TableLayout
@@ -34,11 +34,12 @@
                         />
 
                     <ImageView
-                        android:layout_width="50dp"
-                        android:layout_height="50dp"
+                        android:layout_width="@dimen/icon_size"
+                        android:layout_height="@dimen/icon_size"
                         android:layout_gravity="center"
                         android:src="@drawable/sunrise"
                         android:layout_centerInParent="true"
+                        android:tint="@color/colorIcons"
                         />
 
                 </RelativeLayout>
@@ -48,6 +49,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:paddingTop="6dp"
+                    android:textColor="@color/colorAccent"
                     android:text="Temp" />
 
                 <TextView
@@ -78,11 +80,12 @@
                         />
 
                     <ImageView
-                        android:layout_width="50dp"
-                        android:layout_height="50dp"
+                        android:layout_width="@dimen/icon_size"
+                        android:layout_height="@dimen/icon_size"
                         android:layout_gravity="center"
                         android:src="@drawable/co"
                         android:layout_centerInParent="true"
+                        android:tint="@color/colorIcons"
                         />
 
                 </RelativeLayout>
@@ -92,6 +95,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:paddingTop="6dp"
+                    android:textColor="@color/colorAccent"
                     android:text="Co2" />
 
                 <TextView
@@ -122,11 +126,12 @@
                         />
 
                     <ImageView
-                        android:layout_width="50dp"
-                        android:layout_height="50dp"
+                        android:layout_width="@dimen/icon_size"
+                        android:layout_height="@dimen/icon_size"
                         android:layout_gravity="center"
                         android:src="@drawable/pm10"
                         android:layout_centerInParent="true"
+                        android:tint="@color/colorIcons"
                         />
 
                 </RelativeLayout>
@@ -136,6 +141,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:paddingTop="6dp"
+                    android:textColor="@color/colorAccent"
                     android:text="PM10" />
 
                 <TextView
@@ -166,11 +172,12 @@
                         />
 
                     <ImageView
-                        android:layout_width="50dp"
-                        android:layout_height="50dp"
+                        android:layout_width="@dimen/icon_size"
+                        android:layout_height="@dimen/icon_size"
                         android:layout_gravity="center"
                         android:src="@drawable/pm25"
                         android:layout_centerInParent="true"
+                        android:tint="@color/colorIcons"
                         />
 
                 </RelativeLayout>
@@ -180,6 +187,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center"
                     android:paddingTop="6dp"
+                    android:textColor="@color/colorAccent"
                     android:text="PM2.5" />
 
                 <TextView
@@ -196,25 +204,39 @@
 
     </TableLayout>
 
-    <!--
     <View
-        android:id="@+id/divider"
+        android:id="@+id/divider1"
         android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@color/colorIcons"
+        android:layout_height="1px"
+        android:background="@color/colorDivider"
         android:layout_below="@id/icon_table"
         android:layout_marginTop="24dp"
-        android:layout_marginBottom="24dp"
         />
-        -->
+
+    <com.google.android.gms.maps.MapView
+        android:id="@+id/map"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:layout_below="@id/divider1"
+        />
+
+    <View
+        android:id="@+id/divider2"
+        android:layout_width="match_parent"
+        android:layout_height="1px"
+        android:background="@color/colorDivider"
+        android:layout_below="@id/map"
+        android:paddingBottom="6dp"
+        />
 
     <com.funglejunk.airq.view.SensorLocationMap
         android:id="@+id/sensor_map"
-        android:layout_width="280dp"
-        android:layout_height="280dp"
-        android:layout_below="@id/icon_table"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:layout_below="@id/map"
         android:layout_centerHorizontal="true"
-        android:layout_marginTop="36dp"
+        android:layout_marginTop="24dp"
+        android:visibility="invisible"
         />
 
     <com.wang.avi.AVLoadingIndicatorView
@@ -232,6 +254,7 @@
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
         android:gravity="center"
+        android:textColor="@color/colorSecondaryText"
         tools:text="Yeeha!"
         />
 

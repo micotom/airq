@@ -21,6 +21,7 @@ interface MainActivityView {
 
     fun alphaInIconTable()
 
+    @Deprecated("Using google maps view - refer to setLocations(...)")
     fun displaySensorLocations(userLocation: Location, sensorLocations: List<Location>,
                                measurements: List<StandardizedMeasurement>)
 
@@ -31,5 +32,8 @@ interface MainActivityView {
     fun displayMeasurementOnTap(measurement: StandardizedMeasurement)
 
     fun hideMeasurementOnTap()
+
+    fun setLocations(userLocation: Location, sensorLocations: List<Location>,
+                     measurements: List<StandardizedMeasurement>)
 
 }

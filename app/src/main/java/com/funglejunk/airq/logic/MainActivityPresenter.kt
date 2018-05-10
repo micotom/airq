@@ -67,6 +67,7 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                                             .distinctBy {
                                                 it.coordinates
                                             }
+                                    activity.setLocations(userLocation, sensorLocations, measurements)
                                     activity.displaySensorLocations(userLocation, sensorLocations, measurements)
                                 }
                             }
