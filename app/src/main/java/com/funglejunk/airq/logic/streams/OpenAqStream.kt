@@ -11,6 +11,7 @@ import com.funglejunk.airq.util.FuelResultMapper
 import com.funglejunk.airq.util.MeasurementFormatter
 import io.reactivex.Observable
 import io.reactivex.Single
+import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 import java.util.*
 
@@ -58,7 +59,7 @@ class OpenAqStream(override val location: Location,
                     { emptyList<Try<StandardizedMeasurement>>() },
                     { it }
             )
-        }
+        }.observeOn(Schedulers.io()).subscribeOn(Schedulers.io())
 
     }
 

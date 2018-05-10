@@ -7,7 +7,6 @@ import com.github.kittinunf.fuel.httpGet
 import com.github.kittinunf.fuel.rx.rx_responseString
 import com.github.kittinunf.result.Result
 import io.reactivex.Single
-import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
@@ -27,10 +26,7 @@ class OpenAqClient : OpenAqClientInterface {
                 "date_from=$fromDate&" +
                 "date_to=$toDate"
         Timber.d("request: $requestUri")
-        return requestUri.httpGet()
-                .rx_responseString()
-                .observeOn(Schedulers.io())
-                .subscribeOn(Schedulers.io())
+        return requestUri.httpGet().rx_responseString()
     }
 
 }
