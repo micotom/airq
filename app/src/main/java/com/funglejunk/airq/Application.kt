@@ -1,6 +1,6 @@
 package com.funglejunk.airq
 
-import android.app.Application
+import android.support.multidex.MultiDexApplication
 import com.funglejunk.airq.logic.MainActivityPresenter
 import com.funglejunk.airq.logic.MainActivityPresenterInterface
 import com.funglejunk.airq.logic.location.AndroidGeocoder
@@ -19,7 +19,7 @@ import timber.log.Timber
 import timber.log.Timber.DebugTree
 
 
-class Application : Application() {
+class Application : MultiDexApplication() {
 
     private val module : Module = org.koin.dsl.module.applicationContext {
         bean { params -> AndroidPermissionHelper(params["permissionListener"], params["activity"])
