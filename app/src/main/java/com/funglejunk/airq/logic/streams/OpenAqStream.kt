@@ -1,7 +1,7 @@
 package com.funglejunk.airq.logic.streams
 
 import arrow.core.Try
-import com.funglejunk.airq.logic.net.OpenAqClient
+import com.funglejunk.airq.logic.net.OpenAqClientInterface
 import com.funglejunk.airq.logic.parsing.OpenAqMeasurementsResultParser
 import com.funglejunk.airq.model.AirqException
 import com.funglejunk.airq.model.Location
@@ -14,7 +14,8 @@ import io.reactivex.Single
 import timber.log.Timber
 import java.util.*
 
-class OpenAqStream(override val location: Location) : ApiStream {
+class OpenAqStream(override val location: Location,
+                   private val openAqClient: OpenAqClientInterface) : ApiStream {
 
     private val formatter = MeasurementFormatter()
 
@@ -24,7 +25,7 @@ class OpenAqStream(override val location: Location) : ApiStream {
         return Single.just(location).flatMap {
             val now = Calendar.getInstance().time
             val oneHourBefore = Date(System.currentTimeMillis() - (48 * 3600 * 1000))
-            OpenAqClient().getMeasurements(
+            openAqClient.getMeasurements(
                     location.latitude, location.longitude, oneHourBefore, now
             ).map {
                 FuelResultMapper.map(it,

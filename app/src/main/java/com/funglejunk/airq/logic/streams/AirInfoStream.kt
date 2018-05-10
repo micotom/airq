@@ -1,6 +1,7 @@
 package com.funglejunk.airq.logic.streams
 
 import arrow.core.Try
+import com.funglejunk.airq.logic.net.AirInfoClientInterface
 import com.funglejunk.airq.logic.parsing.AirInfoJsonParser
 import com.funglejunk.airq.model.AirqException
 import com.funglejunk.airq.model.Location
@@ -9,18 +10,12 @@ import com.funglejunk.airq.model.airinfo.AirInfoLocation
 import com.funglejunk.airq.model.airinfo.AirInfoMeasurement
 import com.funglejunk.airq.util.FuelResultMapper
 import com.funglejunk.airq.util.MeasurementFormatter
-import com.github.kittinunf.fuel.httpGet
-import com.github.kittinunf.fuel.rx.rx_responseString
 import io.reactivex.Observable
 import io.reactivex.Single
-import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 
-class AirInfoStream(override val location: Location) : ApiStream {
-
-    companion object {
-        const val API_ENDPOINT = "http://api.luftdaten.info/static/v1/data.json"
-    }
+class AirInfoStream(override val location: Location,
+                    private val client: AirInfoClientInterface) : ApiStream {
 
     private val formatter = MeasurementFormatter()
 
@@ -28,11 +23,7 @@ class AirInfoStream(override val location: Location) : ApiStream {
 
         return Single.just(location).flatMap {
             Timber.d("start air info stream")
-            API_ENDPOINT
-                    .httpGet()
-                    .rx_responseString()
-                    .observeOn(Schedulers.io())
-                    .subscribeOn(Schedulers.io())
+            client.getMeasurements()
                     .map {
                         FuelResultMapper.map(it,
                                 { Try.Success(it) },

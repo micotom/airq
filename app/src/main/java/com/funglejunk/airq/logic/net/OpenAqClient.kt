@@ -12,13 +12,13 @@ import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
 
-class OpenAqClient {
+class OpenAqClient : OpenAqClientInterface {
 
     // 2015-12-20T09:00:00
     @SuppressLint("SimpleDateFormat")
     private val dateFormatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss")
 
-    fun getMeasurements(lat: Double, lon: Double, from: Date, to: Date):
+    override fun getMeasurements(lat: Double, lon: Double, from: Date, to: Date):
             Single<Pair<Response, Result<String, FuelError>>> {
         val fromDate = dateFormatter.format(from)
         val toDate = dateFormatter.format(to)
