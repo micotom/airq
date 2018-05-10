@@ -12,7 +12,7 @@ import java.util.*
 
 class MeasurementFormatter {
 
-    private val openAqDateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ",
+    private val openAqDateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssX",
             Locale.getDefault())
     private val airInfoDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss",
             Locale.getDefault())
