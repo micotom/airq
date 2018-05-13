@@ -25,7 +25,7 @@ class OpenAqStream(override val location: Location,
 
         return Single.just(location).flatMap {
             val now = Calendar.getInstance().time
-            val oneHourBefore = Date(System.currentTimeMillis() - (48 * 3600 * 1000))
+            val oneHourBefore = Date(System.currentTimeMillis() - (4 * 3600 * 1000)) // TODO find a better api, results are always outdated ...
             openAqClient.getMeasurements(
                     location.latitude, location.longitude, oneHourBefore, now
             ).map {
