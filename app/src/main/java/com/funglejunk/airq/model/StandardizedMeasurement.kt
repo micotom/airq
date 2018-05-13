@@ -15,6 +15,7 @@ enum class SensorClass {
     CO2,
     O3,
     BAROMETER,
+    NO2,
     UNKNOWN
 }
 
