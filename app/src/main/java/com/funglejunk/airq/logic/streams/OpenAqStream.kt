@@ -9,6 +9,7 @@ import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.model.openaq.OpenAqMeasurementsResult
 import com.funglejunk.airq.util.MeasurementFormatter
 import com.funglejunk.airq.util.mapToTry
+import com.funglejunk.airq.util.simpleFold
 import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
@@ -32,25 +33,18 @@ class OpenAqStream(override val location: Location,
                 it.mapToTry()
             }
         }.map {
-            it.fold(
-                    { Try.Failure<OpenAqMeasurementsResult>(it) },
-                    { json ->
-                        OpenAqMeasurementsResultParser().parse(json)
-                                .fold(
-                                        { Try.Failure<OpenAqMeasurementsResult>(AirqException.OpenAqParser()) },
-                                        { Try.Success(it) }
-                                )
-                    }
-            )
+            it.simpleFold { json ->
+                OpenAqMeasurementsResultParser().parse(json)
+                        .fold(
+                                { Try.Failure<OpenAqMeasurementsResult>(AirqException.OpenAqParser()) },
+                                { Try.Success(it) }
+                        )
+
+            }
         }.toObservable().map {
-            it.fold(
-                    {
-                        Try.Failure<List<Try<StandardizedMeasurement>>>(it)
-                    },
-                    {
-                        Try.Success(formatter.map(it))
-                    }
-            )
+            it.simpleFold {
+                Try.Success(formatter.map(it))
+            }
         }.flatMapIterable {
             it.fold(
                     { emptyList<Try<StandardizedMeasurement>>() },

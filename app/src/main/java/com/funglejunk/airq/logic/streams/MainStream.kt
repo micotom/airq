@@ -14,6 +14,7 @@ import com.funglejunk.airq.model.AirqException
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.util.filterForSuccess
+import com.funglejunk.airq.util.simpleFold
 import com.funglejunk.airq.util.zipToPair
 import io.reactivex.Observable
 import io.reactivex.Single
@@ -83,12 +84,9 @@ class MainStream(private val permissionListener: RxPermissionListener,
                 }
                 .doOnEvent { event, _ ->
                     Timber.d(event.toString())
-                    event.fold(
-                            {},
-                            {
-                                presenter.signalUserLocation(it)
-                            }
-                    )
+                    event.map {
+                        presenter.signalUserLocation(it)
+                    }
                 }
                 .flatMap {
                     it.fold(
@@ -110,54 +108,41 @@ class MainStream(private val permissionListener: RxPermissionListener,
                     )
 
                 }
-                .map {
-                    val measurementTriesList = it.first
-                    val locationTry = it.second
-                    locationTry.fold(
-                            { Try.Failure<Triple<List<StandardizedMeasurement>, Location, List<Double>>>(it) },
-                            { userLocation ->
-                                val measurements = measurementTriesList.filterForSuccess()
-                                val distances = measurements.map {
-                                    Location(it.coordinates.lat, it.coordinates.lon)
-                                            .distanceTo(userLocation)
-                                }
-                                Try.Success(Triple(measurements, userLocation, distances))
-                            }
-                    )
+                .map { (measurementTriesList, locationTry) ->
+                    locationTry.simpleFold { userLocation ->
+                        val measurements = measurementTriesList.filterForSuccess()
+                        val distances = measurements.map {
+                            Location(it.coordinates.lat, it.coordinates.lon)
+                                    .distanceTo(userLocation)
+                        }
+                        Try.Success(Triple(measurements, userLocation, distances))
+
+                    }
                 }
                 .map {
-                    it.fold(
-                            { Try.Failure<Pair<List<Pair<StandardizedMeasurement, Double>>, Location>>(it) },
-                            { result ->
-                                Try.Success(
-                                        Pair(result.first.mapIndexed { index, measurement ->
-                                            Pair(measurement, result.third[index])
-                                        }, result.second)
-                                )
-                            }
-                    )
+                    it.simpleFold { result ->
+                        Try.Success(
+                                Pair(result.first.mapIndexed { index, measurement ->
+                                    Pair(measurement, result.third[index])
+                                }, result.second)
+                        )
+                    }
                 }
                 .map {
-                    it.fold(
-                            { Try.Failure<Pair<List<Pair<StandardizedMeasurement, Double>>, Location>>(it) },
-                            {
-                                val (measurementsWithDouble, userLocation) = it
-                                val sorted = measurementsWithDouble.sortedBy { it.second }
-                                Try.Success(Pair(sorted, userLocation))
-                            }
-                    )
+                    it.simpleFold {
+                        val (measurementsWithDouble, userLocation) = it
+                        val sorted = measurementsWithDouble.sortedBy { it.second }
+                        Try.Success(Pair(sorted, userLocation))
+                    }
                 }
                 .map {
-                    it.fold(
-                            { Try.Failure<List<Triple<StandardizedMeasurement, Location, Double>>>(it) },
-                            {
-                                val location = it.second
-                                val r = it.first.map {
-                                    Triple(it.first, location, it.second)
-                                }
-                                Try.Success(r)
-                            }
-                    )
+                    it.simpleFold {
+                        val location = it.second
+                        val r = it.first.map {
+                            Triple(it.first, location, it.second)
+                        }
+                        Try.Success(r)
+                    }
                 }
                 .doOnEvent { e, _ ->
                     e.fold(
