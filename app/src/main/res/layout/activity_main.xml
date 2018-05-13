@@ -6,7 +6,7 @@
     android:layout_height="match_parent"
     tools:context="com.funglejunk.airq.view.MainActivity"
     android:background="#ffffff"
-    android:padding="24dp">
+    android:padding="@dimen/std_padding">
 
     <TableLayout
         android:id="@+id/icon_table"
@@ -204,40 +204,24 @@
 
     </TableLayout>
 
-    <View
-        android:id="@+id/divider1"
+    <RelativeLayout
+        android:id="@+id/map_box"
         android:layout_width="match_parent"
-        android:layout_height="1px"
-        android:background="@color/colorDivider"
+        android:layout_height="@dimen/map_height"
         android:layout_below="@id/icon_table"
-        android:layout_marginTop="24dp"
-        />
+        android:background="@color/colorPrimaryDark"
+        android:layout_marginTop="@dimen/std_padding"
+        android:padding="1px"
+        >
 
-    <com.google.android.gms.maps.MapView
-        android:id="@+id/map"
-        android:layout_width="match_parent"
-        android:layout_height="240dp"
-        android:layout_below="@id/divider1"
-        />
+        <com.google.android.gms.maps.MapView
+            android:id="@+id/map"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/map_height"
+            android:layout_centerInParent="true"
+            />
 
-    <View
-        android:id="@+id/divider2"
-        android:layout_width="match_parent"
-        android:layout_height="1px"
-        android:background="@color/colorDivider"
-        android:layout_below="@id/map"
-        android:paddingBottom="6dp"
-        />
-
-    <com.funglejunk.airq.view.SensorLocationMap
-        android:id="@+id/sensor_map"
-        android:layout_width="match_parent"
-        android:layout_height="240dp"
-        android:layout_below="@id/map"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="24dp"
-        android:visibility="invisible"
-        />
+    </RelativeLayout>
 
     <com.wang.avi.AVLoadingIndicatorView
         android:id="@+id/loading_animation"
