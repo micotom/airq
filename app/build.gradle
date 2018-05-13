@@ -7,6 +7,8 @@ apply plugin: 'kotlin-android-extensions'
 // icon credits: https://support.flaticon.com/hc/en-us/articles/207248209-How-I-must-insert-the-attribution-
 // https://www.flaticon.com/packs/weather-96
 
+// map pointer: https://www.iconfinder.com/icons/2463193/cursor_gps_guide_map_marker_pointer_icon#size=128
+
 android {
     compileSdkVersion 26
     defaultConfig {
