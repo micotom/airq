@@ -29,6 +29,8 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                             openAqClient: OpenAqClientInterface) :
         MainActivityPresenterInterface {
 
+    private lateinit var view: MainActivityView
+
     private var apiSubscription: Disposable? = null
     private val stream: MainStream = MainStream(
             permissionListener,
@@ -38,9 +40,15 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
             geoCoder,
             airNowClient,
             airInfoClient,
-            openAqClient)
+            openAqClient,
+            this)
+
+    override fun signalUserLocation(location: Location) {
+        view.onUserLocationKnown(location)
+    }
 
     override fun viewStarted(activity: MainActivityView) {
+        view = activity
         apiSubscription = stream.start()
                 .doOnSubscribe {
                     activity.clearSensorLocations()
@@ -109,6 +117,7 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                                 val avPm25 = measurements.getAv(SensorClass.PM25)
                                 val avCo2 = measurements.getAv(SensorClass.CO2)
                                 val avPressure = measurements.getAv(SensorClass.BAROMETER)
+                                val avNo2 = measurements.getAv(SensorClass.NO2)
                                 with(activity) {
                                     setTemperatureValue(avTemp)
                                     setCo2Value(avCo2)

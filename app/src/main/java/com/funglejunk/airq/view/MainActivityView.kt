@@ -36,4 +36,6 @@ interface MainActivityView {
     fun setLocations(userLocation: Location, sensorLocations: List<Location>,
                      measurements: List<StandardizedMeasurement>)
 
+    fun onUserLocationKnown(location: Location)
+
 }

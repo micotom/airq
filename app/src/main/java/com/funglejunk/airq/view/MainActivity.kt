@@ -133,17 +133,9 @@ class MainActivity : AppCompatActivity(), MainActivityView {
     }
 
     override fun displaySensorLocations(userLocation: Location, sensorLocations: List<Location>,
-                                        measurements: List<StandardizedMeasurement>) {
-        runOnUiThread {
-            sensor_map.setLocations(userLocation, sensorLocations, measurements)
-        }
-    }
+                                        measurements: List<StandardizedMeasurement>) {}
 
-    override fun clearSensorLocations() {
-        runOnUiThread {
-            sensor_map.clearLocations()
-        }
-    }
+    override fun clearSensorLocations() {}
 
     override fun clearSensorValues() {
         runOnUiThread {
@@ -173,7 +165,7 @@ class MainActivity : AppCompatActivity(), MainActivityView {
         val height = 72
         val width = 72
         val bmpDrawable = ContextCompat
-                .getDrawable(this, R.drawable.baseline_beenhere_black_18dp)
+                .getDrawable(this, R.drawable.map_home)
                 as BitmapDrawable
         val b = bmpDrawable.bitmap
         val smallMarker = Bitmap.createScaledBitmap(b, width, height, false)
@@ -198,9 +190,9 @@ class MainActivity : AppCompatActivity(), MainActivityView {
                 gmap = googleMap
                 gmap?.let { safeMap ->
                     safeMap.setMinZoomPreference(12.0f)
-
                     val mapsCenter = LatLng(userLocation.latitude, userLocation.longitude)
                     safeMap.moveCamera(CameraUpdateFactory.newLatLng(mapsCenter))
+
                     safeMap.addMarker(
                             MarkerOptions()
                                     .position(mapsCenter)
@@ -238,6 +230,19 @@ class MainActivity : AppCompatActivity(), MainActivityView {
                         displayMeasurementOnTap(measurement)
                         true
                     }
+                }
+            }
+        }
+    }
+
+    override fun onUserLocationKnown(location: Location) {
+        runOnUiThread {
+            map.getMapAsync { googleMap ->
+                gmap = googleMap
+                gmap?.let { safeMap ->
+                    safeMap.setMinZoomPreference(12.0f)
+                    val mapsCenter = LatLng(location.latitude, location.longitude)
+                    safeMap.moveCamera(CameraUpdateFactory.newLatLng(mapsCenter))
                 }
             }
         }

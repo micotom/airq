@@ -1,6 +1,7 @@
 package com.funglejunk.airq.logic.streams
 
 import arrow.core.Try
+import com.funglejunk.airq.logic.MainActivityPresenterInterface
 import com.funglejunk.airq.logic.location.Geocoder
 import com.funglejunk.airq.logic.location.LocationProvider
 import com.funglejunk.airq.logic.location.permission.PermissionHelperInterface
@@ -25,7 +26,8 @@ class MainStream(private val permissionListener: RxPermissionListener,
                  private val geoCoder: Geocoder,
                  private val airNowClient: AirNowClientInterface,
                  private val airInfoClient: AirInfoClientInterface,
-                 private val openAqClient: OpenAqClientInterface) {
+                 private val openAqClient: OpenAqClientInterface,
+                 private val presenter: MainActivityPresenterInterface) {
 
     fun start(): Single<Try<List<Triple<StandardizedMeasurement, Location, Double>>>> {
         return Single.just { Timber.d("starting stream ...") }
@@ -81,6 +83,12 @@ class MainStream(private val permissionListener: RxPermissionListener,
                 }
                 .doOnEvent { event, _ ->
                     Timber.d(event.toString())
+                    event.fold(
+                            {},
+                            {
+                                presenter.signalUserLocation(it)
+                            }
+                    )
                 }
                 .flatMap {
                     it.fold(
