@@ -64,6 +64,22 @@
     ]
   },
   {
+    "featureType": "administrative.locality",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
+    "featureType": "administrative.neighborhood",
+    "stylers": [
+      {
+        "visibility": "off"
+      }
+    ]
+  },
+  {
     "featureType": "poi",
     "stylers": [
       {
