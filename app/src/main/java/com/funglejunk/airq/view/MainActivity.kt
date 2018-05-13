@@ -210,25 +210,27 @@ class MainActivity : AppCompatActivity(), MainActivityView {
 
                     safeMap.setOnMarkerClickListener { marker ->
                         marker.alpha = 1.0f
-                        val measurement = marker.tag as StandardizedMeasurement
-                        val mapRipple = MapRipple(
-                                safeMap,
-                                LatLng(measurement.coordinates.lat, measurement.coordinates.lon),
-                                this@MainActivity
-                        )
-                        mapRipple.withStrokeColor(
-                                ContextCompat.getColor(this@MainActivity, R.color.colorAccent)
-                        )
-                        mapRipple.withStrokewidth(20)
-                        mapRipple.withTransparency(0.0f)
+                        val measurement = marker.tag as? StandardizedMeasurement
+                        measurement?.let {
+                            val mapRipple = MapRipple(
+                                    safeMap,
+                                    LatLng(measurement.coordinates.lat, measurement.coordinates.lon),
+                                    this@MainActivity
+                            )
+                            mapRipple.withStrokeColor(
+                                    ContextCompat.getColor(this@MainActivity, R.color.colorAccent)
+                            )
+                            mapRipple.withStrokewidth(20)
+                            mapRipple.withTransparency(0.0f)
 
-                        mapRipple.startRippleMapAnimation()
-                        Handler().postDelayed({
-                            marker.alpha = 0.4f
-                            mapRipple.stopRippleMapAnimation()
-                        }, 2000)
-                        displayMeasurementOnTap(measurement)
-                        true
+                            mapRipple.startRippleMapAnimation()
+                            Handler().postDelayed({
+                                marker.alpha = 0.4f
+                                mapRipple.stopRippleMapAnimation()
+                            }, 2000)
+                            displayMeasurementOnTap(measurement)
+                            true
+                        } ?: false
                     }
                 }
             }
