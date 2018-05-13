@@ -2,7 +2,6 @@ package com.funglejunk.airq.logic.streams
 
 import arrow.core.Try
 import com.funglejunk.airq.MockOpenAqClient
-import com.funglejunk.airq.model.Coordinates
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.github.kittinunf.result.Result
@@ -128,7 +127,7 @@ class OpenAqStreamTest {
 }
         """
 
-    private lateinit var observer: TestObserver<Try<StandardizedMeasurement>>
+    private lateinit var observer: TestObserver<Try<List<Try<StandardizedMeasurement>>>>
 
     @Before
     fun before() {
@@ -147,32 +146,42 @@ class OpenAqStreamTest {
         val stream = OpenAqStream(Location(2.0, 1.0), client)
 
         observer = TestObserver()
-        stream.observable().subscribe(observer)
+        stream.single().subscribe(observer)
         observer.await()
         val results = observer.values()
 
-        // two distinct stations
-        assertEquals(2, observer.valueCount())
+        // must be one try
+        assertEquals(1, observer.valueCount())
 
-        // parsing successful
-        assertTrue(results.all { it is Try.Success })
-        val validatedResults = results.map { (it as Try.Success).value }
+        // must be success
+        val listTry = results[0]
+        assertTrue(listTry is Try.Success)
+        listTry as Try.Success
 
-        // find first station
-        assertTrue(validatedResults.find {
-            it.coordinates == Coordinates(48.149606, 11.536513)
-        }  != null)
+        // contains two distinct measurement stations
+        val stationMeasurements = listTry.value
+        assertEquals(2, stationMeasurements.size)
 
-        // find second station
-        assertTrue(validatedResults.find {
-            it.coordinates == Coordinates(48.154534, 11.554669)
-        }  != null)
+        // both are success
+        val firstStationMeasurement = stationMeasurements[0]
+        val secondStationMeasurement = stationMeasurements[1]
+        assertTrue(firstStationMeasurement is Try.Success)
+        assertTrue(secondStationMeasurement is Try.Success)
+        firstStationMeasurement as Try.Success
+        secondStationMeasurement as Try.Success
 
-        // check measurements
-        val firstStation = validatedResults.find {
-            it.coordinates == Coordinates(48.149606, 11.536513)
-        }!!
-        assertEquals(3, firstStation.measurements.size)
+        val firstMeasurements = firstStationMeasurement.value
+        val secondMeasurements = secondStationMeasurement.value
+
+        // verify coordinates
+        assertEquals(48.149606, firstMeasurements.coordinates.lat, 0.0000001)
+        assertEquals(11.536513, firstMeasurements.coordinates.lon, 0.0000001)
+        assertEquals(48.154534, secondMeasurements.coordinates.lat, 0.0000001)
+        assertEquals(11.554669, secondMeasurements.coordinates.lon, 0.0000001)
+
+        // verify nr of measurement
+        assertEquals(3, firstMeasurements.measurements.size)
+        assertEquals(1, secondMeasurements.measurements.size)
     }
 
 }
