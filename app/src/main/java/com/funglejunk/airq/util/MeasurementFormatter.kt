@@ -18,59 +18,55 @@ class MeasurementFormatter {
             Locale.getDefault())
 
     fun map(openAqMeasurements: OpenAqMeasurementsResult): List<Try<StandardizedMeasurement>> {
-        val groupedByLocations = openAqMeasurements.results.groupBy { it.coordinates }
 
-        val groupedByLocationAndSensorClass = groupedByLocations.entries.map {
+        val groupedByStations = openAqMeasurements.results.groupBy { it.location }
+        val groupedByLocationAndSensorClass = groupedByStations.entries.map {
             it.key to (it.value.groupBy { it.parameter })
         }
         val latestMeasurements = mutableMapOf<OpenAqCoordinates, List<OpenAqResult>>()
-        groupedByLocationAndSensorClass.forEach { (coordinates, measurements) ->
+        groupedByLocationAndSensorClass.forEach { (_, sensorMeasurementMaps) ->
             val latMs = mutableListOf<OpenAqResult>()
-
-            measurements.entries.forEach {
+            sensorMeasurementMaps.entries.forEach {
                 val latest = it.value.sortedBy { it.date.local }.last()
                 latMs.add(latest)
             }
-            latestMeasurements[coordinates] = latMs
+            latestMeasurements[latMs.first().coordinates] = latMs
         }
 
-        val returnList = mutableListOf<Try<StandardizedMeasurement>>()
-        latestMeasurements.entries.forEach {
-            val coordinates = it.key
-            val measurements = it.value
-            val latestDate = measurements.first().date
-            val stdMs = mutableListOf<Measurement>()
-            measurements.forEach {
-                measurements.map {
-                    val sensor = when (it.parameter) {
-                        "pm25" -> SensorClass.PM25
-                        "pm10" -> SensorClass.PM10
-                        "o3" -> SensorClass.O3
-                        "co" -> SensorClass.CO2
-                        else -> SensorClass.UNKNOWN
+        return latestMeasurements.entries.fold(mutableListOf()) { retList, entry ->
+            val coordinates = entry.key
+            val resultList = entry.value
+            val measurements = resultList.map { result ->
+                val sensor = when (result.parameter) {
+                    "pm25" -> SensorClass.PM25
+                    "pm10" -> SensorClass.PM10
+                    "o3" -> SensorClass.O3
+                    "co" -> SensorClass.CO2
+                    "no2" -> SensorClass.NO2
+                    else -> SensorClass.UNKNOWN
+                }
+                when (sensor) {
+                    SensorClass.UNKNOWN -> {
+                        Timber.w("unknown sensor value: ${result.parameter}")
+                        null
                     }
-                    when (sensor) {
-                        SensorClass.UNKNOWN -> Timber.w("unknown sensor value: ${it.parameter}")
-                        else -> {
-                            val value = it.value
-                            stdMs.add(Measurement(sensor, value))
-                        }
+                    else -> {
+                        val value = result.value
+                        Measurement(sensor, value)
                     }
                 }
-            }
-            returnList.add(
-                    Try.Success(
-                            StandardizedMeasurement(
-                                    openAqDateFormat.parse(latestDate.local),
-                                    stdMs,
-                                    Coordinates(coordinates.latitude, coordinates.longitude),
-                                    ApiSource.OPEN_AQ
-                            )
-                    )
+            }.filterNotNull()
+            val latest = resultList.sortedBy { it.date.local }.last()
+            retList.add(Try.Success(
+                    StandardizedMeasurement(
+                            openAqDateFormat.parse(latest.date.local),
+                            measurements,
+                            Coordinates(coordinates.latitude, coordinates.longitude),
+                            ApiSource.OPEN_AQ
+                    ))
             )
+            retList
         }
-
-        return returnList
     }
 
     fun map(measurements: List<Try<AirInfoMeasurement>>): List<Try<StandardizedMeasurement>> {

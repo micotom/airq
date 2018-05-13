@@ -18,9 +18,9 @@ class OpenAqMeasurementsResultParser {
             Timber.d("parsing: $resultJson")
             adapter.fromJson(resultJson)?.let {
                 Option.just(it)
-            } ?: Option.empty<OpenAqMeasurementsResult>()
+            } ?: Option.empty()
         } catch (e: Exception) {
-            Option.empty<OpenAqMeasurementsResult>()
+            Option.empty()
         }
     }
 
