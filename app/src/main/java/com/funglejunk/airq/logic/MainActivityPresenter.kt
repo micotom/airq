@@ -82,7 +82,6 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                                                 it.coordinates
                                             }
                                     activity.setLocations(userLocation, sensorLocations, measurements)
-                                    activity.displaySensorLocations(userLocation, sensorLocations, measurements)
                                 }
                             }
                     )
@@ -130,11 +129,13 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                 .doFinally {
                     activity.hideLoadingAnimation()
                     activity.alphaInIconTable()
-                    Timber.e("main stream finished")
                 }
                 .subscribe(
                         { _ ->
                             Timber.d("stream finished")
+                        },
+                        {
+                            Timber.e("stream error: $it")
                         }
                 )
     }

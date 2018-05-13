@@ -10,7 +10,6 @@ import com.funglejunk.airq.model.airinfo.AirInfoMeasurement
 import com.funglejunk.airq.util.MeasurementFormatter
 import com.funglejunk.airq.util.mapToTry
 import com.funglejunk.airq.util.simpleFold
-import io.reactivex.Observable
 import io.reactivex.Single
 import timber.log.Timber
 
@@ -19,9 +18,8 @@ class AirInfoStream(override val location: Location,
 
     private val formatter = MeasurementFormatter()
 
-    override fun internalObservable(location: Location): Observable<Try<StandardizedMeasurement>> {
-
-        return Single.just(location).flatMap {
+    override fun internalSingle(location: Location): Single<Try<List<Try<StandardizedMeasurement>>>> =
+        Single.just(location).flatMap {
             Timber.d("start air info stream")
             client.getMeasurements()
                     .map {
@@ -44,7 +42,7 @@ class AirInfoStream(override val location: Location,
                 }
                 Try.Success(nearbyMeasurements)
             }
-        }.toObservable().map {
+        }.map {
             it.simpleFold {
                 val locationsGrouped = it.groupBy { it.location }
                 Try.Success(locationsGrouped)
@@ -66,13 +64,6 @@ class AirInfoStream(override val location: Location,
             it.simpleFold {
                 Try.Success(formatter.map(it))
             }
-        }.flatMapIterable {
-            it.fold(
-                    { emptyList<Try<StandardizedMeasurement>>() },
-                    { it }
-            )
         }
-
-    }
 
 }

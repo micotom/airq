@@ -4,13 +4,14 @@ import arrow.core.Try
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Response
 import com.github.kittinunf.result.Result
+import io.reactivex.Flowable
 import io.reactivex.Single
 import io.reactivex.functions.BiFunction
 import timber.log.Timber
 import java.math.BigDecimal
 
-fun <T: Any, V: Any> zipToPair(s1: Single<T>, s2: Single<V>): Single<Pair<T, V>> {
-    return s1.zipWith(s2, BiFunction { o1Value, o2Value -> Pair(o1Value, o2Value) })
+fun <T: Any, V: Any> zipToPair(s1: Flowable<T>, s2: Single<V>): Flowable<Pair<T, V>> {
+    return s1.zipWith(s2.toFlowable(), BiFunction { o1Value, o2Value -> Pair(o1Value, o2Value) })
 }
 
 fun Double.roundTo2Decimals() = try {

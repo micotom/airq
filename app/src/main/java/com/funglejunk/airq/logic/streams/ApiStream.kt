@@ -3,18 +3,17 @@ package com.funglejunk.airq.logic.streams
 import arrow.core.Try
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
-import io.reactivex.Observable
 import io.reactivex.Single
 
 interface ApiStream {
 
     val location: Location
 
-    fun observable(): Observable<Try<StandardizedMeasurement>> = Single.just(location)
-            .flatMapObservable {
-                internalObservable(it)
+    fun single(): Single<Try<List<Try<StandardizedMeasurement>>>> = Single.just(location)
+            .flatMap {
+                internalSingle(it)
             }
 
-    fun internalObservable(location: Location): Observable<Try<StandardizedMeasurement>>
+    fun internalSingle(location: Location): Single<Try<List<Try<StandardizedMeasurement>>>>
 
 }

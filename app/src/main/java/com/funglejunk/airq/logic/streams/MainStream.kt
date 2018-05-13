@@ -16,7 +16,7 @@ import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.util.filterForSuccess
 import com.funglejunk.airq.util.simpleFold
 import com.funglejunk.airq.util.zipToPair
-import io.reactivex.Observable
+import io.reactivex.Flowable
 import io.reactivex.Single
 import timber.log.Timber
 
@@ -87,36 +87,35 @@ class MainStream(private val permissionListener: RxPermissionListener,
                     event.map {
                         presenter.signalUserLocation(it)
                     }
-                }
+                }.toFlowable()
                 .flatMap {
                     it.fold(
                             {
-                                Single.just(Pair(emptyList<Try<StandardizedMeasurement>>(),
+                                Flowable.just(Pair(Try.Failure<List<Try<StandardizedMeasurement>>>(it),
                                         Try.Failure<Location>(it)))
                             },
                             {
                                 zipToPair(
-                                        Observable.concat(
-                                                listOf(
-                                                AirInfoStream(it, airInfoClient).observable(),
-                                                OpenAqStream(it, openAqClient).observable()
-                                                )
-                                        ).toList(),
+                                        Single.concat(
+                                                AirInfoStream(it, airInfoClient).single(),
+                                                OpenAqStream(it, openAqClient).single()
+                                        ),
                                         Single.just(Try.Success(it))
                                 )
                             }
                     )
 
                 }
-                .map { (measurementTriesList, locationTry) ->
+                .map { (tryMeasurementTriesList, locationTry) ->
                     locationTry.simpleFold { userLocation ->
-                        val measurements = measurementTriesList.filterForSuccess()
-                        val distances = measurements.map {
-                            Location(it.coordinates.lat, it.coordinates.lon)
-                                    .distanceTo(userLocation)
+                        tryMeasurementTriesList.simpleFold { measurementTriesList ->
+                            val measurements = measurementTriesList.filterForSuccess()
+                            val distances = measurements.map {
+                                Location(it.coordinates.lat, it.coordinates.lon)
+                                        .distanceTo(userLocation)
+                            }
+                            Try.Success(Triple(measurements, userLocation, distances))
                         }
-                        Try.Success(Triple(measurements, userLocation, distances))
-
                     }
                 }
                 .map {
@@ -144,7 +143,7 @@ class MainStream(private val permissionListener: RxPermissionListener,
                         Try.Success(r)
                     }
                 }
-                .doOnEvent { e, _ ->
+                .doOnNext { e ->
                     e.fold(
                             { Timber.e("report: $it") },
                             {
@@ -154,6 +153,8 @@ class MainStream(private val permissionListener: RxPermissionListener,
                             }
                     )
                 }
+                .firstOrError()
+
     }
 
 }

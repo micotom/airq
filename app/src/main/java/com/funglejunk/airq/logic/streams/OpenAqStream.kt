@@ -10,10 +10,7 @@ import com.funglejunk.airq.model.openaq.OpenAqMeasurementsResult
 import com.funglejunk.airq.util.MeasurementFormatter
 import com.funglejunk.airq.util.mapToTry
 import com.funglejunk.airq.util.simpleFold
-import io.reactivex.Observable
 import io.reactivex.Single
-import io.reactivex.schedulers.Schedulers
-import timber.log.Timber
 import java.util.*
 
 class OpenAqStream(override val location: Location,
@@ -21,37 +18,29 @@ class OpenAqStream(override val location: Location,
 
     private val formatter = MeasurementFormatter()
 
-    override fun internalObservable(location: Location): Observable<Try<StandardizedMeasurement>> {
-        Timber.d("start open aq stream")
+    override fun internalSingle(location: Location): Single<Try<List<Try<StandardizedMeasurement>>>> =
+            Single.just(location).flatMap {
+                val now = Calendar.getInstance().time
+                val oneHourBefore = Date(System.currentTimeMillis() - (4 * 3600 * 1000)) // TODO find a better api, results are always outdated ...
+                openAqClient.getMeasurements(
+                        location.latitude, location.longitude, oneHourBefore, now
+                ).map {
+                    it.mapToTry()
+                }
+            }.map {
+                it.simpleFold { json ->
+                    OpenAqMeasurementsResultParser().parse(json)
+                            .fold(
+                                    { Try.Failure<OpenAqMeasurementsResult>(AirqException.OpenAqParser()) },
+                                    { Try.Success(it) }
+                            )
 
-        return Single.just(location).flatMap {
-            val now = Calendar.getInstance().time
-            val oneHourBefore = Date(System.currentTimeMillis() - (4 * 3600 * 1000)) // TODO find a better api, results are always outdated ...
-            openAqClient.getMeasurements(
-                    location.latitude, location.longitude, oneHourBefore, now
-            ).map {
-                it.mapToTry()
+                }
+            }.map {
+                it.simpleFold {
+                    Try.Success(formatter.map(it))
+                }
             }
-        }.map {
-            it.simpleFold { json ->
-                OpenAqMeasurementsResultParser().parse(json)
-                        .fold(
-                                { Try.Failure<OpenAqMeasurementsResult>(AirqException.OpenAqParser()) },
-                                { Try.Success(it) }
-                        )
 
-            }
-        }.toObservable().map {
-            it.simpleFold {
-                Try.Success(formatter.map(it))
-            }
-        }.flatMapIterable {
-            it.fold(
-                    { emptyList<Try<StandardizedMeasurement>>() },
-                    { it }
-            )
-        }.observeOn(Schedulers.io()).subscribeOn(Schedulers.io())
-
-    }
 
 }
