@@ -35,8 +35,7 @@ android {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation "io.reactivex.rxjava2:rxjava:$rx_java_version"
     implementation 'io.reactivex.rxjava2:rxandroid:2.0.2'
     implementation 'io.arrow-kt:arrow-core:0.7.1'
@@ -52,6 +51,8 @@ dependencies {
     implementation 'com.google.android.gms:play-services-maps:15.0.1'
     implementation 'com.android.support:multidex:1.0.3'
     implementation 'com.github.aarsy.googlemapsanimations:googlemapsanimations:1.0.5'
+    implementation 'android.arch.navigation:navigation-fragment-ktx:1.0.0-alpha01'
+    implementation 'android.arch.navigation:navigation-ui-ktx:1.0.0-alpha01'
 
     testImplementation 'junit:junit:4.12'
     testImplementation "org.koin:koin-test:$koin_version"
