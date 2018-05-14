@@ -14,12 +14,12 @@ import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.SensorClass
 import com.funglejunk.airq.model.StandardizedMeasurement
 import com.funglejunk.airq.util.roundTo2Decimals
-import com.funglejunk.airq.view.MainActivityView
+import com.funglejunk.airq.view.MainFragmentView
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 
-class MainActivityPresenter(permissionListener: RxPermissionListener,
+class MainFragmentPresenter(permissionListener: RxPermissionListener,
                             permissionHelper: PermissionHelperInterface,
                             networkHelper: NetworkHelper,
                             locationProvider: LocationProvider,
@@ -29,7 +29,7 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                             openAqClient: OpenAqClientInterface) :
         MainActivityPresenterInterface {
 
-    private lateinit var view: MainActivityView
+    private lateinit var view: MainFragmentView
 
     private var apiSubscription: Disposable? = null
     private val stream: MainStream = MainStream(
@@ -47,17 +47,15 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
         view.onUserLocationKnown(location)
     }
 
-    override fun viewStarted(activity: MainActivityView) {
-        view = activity
+    override fun viewStarted(fragment: MainFragmentView) {
+        view = fragment
         apiSubscription = stream.start()
                 .doOnSubscribe {
-                    activity.clearSensorLocations()
-                    activity.clearSensorValues()
-                    activity.alphaOutIconTable()
-                    activity.showLoadingAnimation()
+                    fragment.clearSensorLocations()
+                    fragment.clearSensorValues()
+                    fragment.alphaOutIconTable()
+                    fragment.showLoadingAnimation()
                 }
-                .observeOn(Schedulers.io())
-                .subscribeOn(Schedulers.io())
                 .doOnEvent { event, _ ->
                     event.fold(
                             {
@@ -81,7 +79,7 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                                             .distinctBy {
                                                 it.coordinates
                                             }
-                                    activity.setLocations(userLocation, sensorLocations, measurements)
+                                    fragment.setLocations(userLocation, sensorLocations, measurements)
                                 }
                             }
                     )
@@ -117,7 +115,7 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                                 val avCo2 = measurements.getAv(SensorClass.CO2)
                                 val avPressure = measurements.getAv(SensorClass.BAROMETER)
                                 val avNo2 = measurements.getAv(SensorClass.NO2)
-                                with(activity) {
+                                with(fragment) {
                                     setTemperatureValue(avTemp)
                                     setCo2Value(avCo2)
                                     setPm10Value(avPm10)
@@ -127,9 +125,11 @@ class MainActivityPresenter(permissionListener: RxPermissionListener,
                     )
                 }
                 .doFinally {
-                    activity.hideLoadingAnimation()
-                    activity.alphaInIconTable()
+                    fragment.hideLoadingAnimation()
+                    fragment.alphaInIconTable()
                 }
+                .subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.io())
                 .subscribe(
                         { _ ->
                             Timber.d("stream finished")

@@ -1,18 +1,34 @@
 package com.funglejunk.airq.view
 
+import android.content.res.Resources
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
+import android.os.Handler
+import android.support.v4.app.Fragment
+import android.support.v4.content.ContextCompat
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
+import com.arsy.maps_library.MapRipple
 import com.funglejunk.airq.R
+import com.funglejunk.airq.logic.MainActivityPresenterInterface
+import com.funglejunk.airq.logic.location.permission.RxPermissionListener
+import com.funglejunk.airq.model.Location
+import com.funglejunk.airq.model.StandardizedMeasurement
+import com.funglejunk.airq.util.runOnUiThread
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.*
+import kotlinx.android.synthetic.main.main_fragment.*
+import org.koin.android.ext.android.inject
+import timber.log.Timber
+import java.util.concurrent.TimeUnit
 
 
-class MainActivity : AppCompatActivity() {
+class MainFragment : Fragment(), MainFragmentView {
 
-    public override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-    }
-
-    /*
     companion object {
         private const val MAP_VIEW_BUNDLE_KEY = "MapViewBundleKey"
     }
@@ -21,41 +37,38 @@ class MainActivity : AppCompatActivity() {
             parameters = {
                 mapOf(
                         "permissionListener" to RxPermissionListener(),
-                        "activity" to this,
-                        "context" to this)
+                        "activity" to activity!!,
+                        "context" to context!!)
             }
     )
-
-    private var gmap: GoogleMap? = null
-
     private val sensorInfoTextHandler = Handler()
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+    override fun onCreateView(inflater: LayoutInflater, parent: ViewGroup?,
+                              savedInstanceState: Bundle?): View? {
+        return inflater.inflate(R.layout.main_fragment, parent, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
 
         val mapViewBundle = savedInstanceState?.getBundle(MAP_VIEW_BUNDLE_KEY)
         map.onCreate(mapViewBundle)
 
-        map.getMapAsync { googleMap ->
-            gmap = googleMap
-            gmap?.let { safeGmap ->
-                try {
-                    val success = safeGmap.setMapStyle(
-                            MapStyleOptions.loadRawResourceStyle(this, R.raw.maps_style))
-                    if (!success) {
-                        Timber.e("Style parsing failed.")
-                    }
-                } catch (e: Resources.NotFoundException) {
-                    Timber.e("Can't find style. Error: $e")
+        map.getMapAsync { safeGmap ->
+            try {
+                val success = safeGmap.setMapStyle(
+                        MapStyleOptions.loadRawResourceStyle(activity, R.raw.maps_style))
+                if (!success) {
+                    Timber.e("Style parsing failed.")
                 }
+            } catch (e: Resources.NotFoundException) {
+                Timber.e("Can't find style. Error: $e")
             }
         }
     }
 
-    public override fun onSaveInstanceState(outState: Bundle) {
+    override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-
         val mapViewBundle = outState.getBundle(MAP_VIEW_BUNDLE_KEY)?.let {
             it
         } ?: Bundle().apply {
@@ -71,6 +84,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onPause() {
+        map.getMapAsync { safeMap ->
+            safeMap.clear()
+        }
         presenter.viewStopped()
         super.onPause()
         map.onPause()
@@ -125,7 +141,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun displaySensorLocations(userLocation: Location, sensorLocations: List<Location>,
-                                        measurements: List<StandardizedMeasurement>) {}
+                                        measurements: List<StandardizedMeasurement>) {
+    }
 
     override fun clearSensorLocations() {}
 
@@ -153,15 +170,16 @@ class MainActivity : AppCompatActivity() {
         sensor_info_text.text = sensorInfo + builder.toString()
 
         sensorInfoTextHandler.removeCallbacksAndMessages(null)
-        sensorInfoTextHandler.postDelayed( {
+        sensorInfoTextHandler.postDelayed({
             val alphaOutAnim = AlphaAnimation(1.0f, 0.0f)
             alphaOutAnim.duration = 1000
             alphaOutAnim.fillAfter = false
-            alphaOutAnim.setAnimationListener(object: Animation.AnimationListener {
+            alphaOutAnim.setAnimationListener(object : Animation.AnimationListener {
                 override fun onAnimationRepeat(p0: Animation?) {}
                 override fun onAnimationEnd(p0: Animation?) {
                     sensor_info_text.text = null
                 }
+
                 override fun onAnimationStart(p0: Animation?) {}
             })
             sensor_info_text.startAnimation(alphaOutAnim)
@@ -172,7 +190,7 @@ class MainActivity : AppCompatActivity() {
         val height = 72
         val width = 72
         val bmpDrawable = ContextCompat
-                .getDrawable(this, R.drawable.map_home)
+                .getDrawable(activity!!, R.drawable.map_home)
                 as BitmapDrawable
         val b = bmpDrawable.bitmap
         val smallMarker = Bitmap.createScaledBitmap(b, width, height, false)
@@ -183,7 +201,7 @@ class MainActivity : AppCompatActivity() {
         val height = 36
         val width = 36
         val bmpDrawable = ContextCompat
-                .getDrawable(this, R.drawable.baseline_trip_origin_black_18dp)
+                .getDrawable(activity!!, R.drawable.baseline_trip_origin_black_18dp)
                 as BitmapDrawable
         val b = bmpDrawable.bitmap
         val smallMarker = Bitmap.createScaledBitmap(b, width, height, false)
@@ -193,39 +211,38 @@ class MainActivity : AppCompatActivity() {
     override fun setLocations(userLocation: Location, sensorLocations: List<Location>,
                               measurements: List<StandardizedMeasurement>) {
         runOnUiThread {
-            map.getMapAsync { googleMap ->
-                gmap = googleMap
-                gmap?.let { safeMap ->
-                    safeMap.setMinZoomPreference(12.0f)
-                    val mapsCenter = LatLng(userLocation.latitude, userLocation.longitude)
-                    safeMap.moveCamera(CameraUpdateFactory.newLatLng(mapsCenter))
+            map.getMapAsync { safeMap ->
+                safeMap.setMinZoomPreference(12.0f)
+                val mapsCenter = LatLng(userLocation.latitude, userLocation.longitude)
+                safeMap.moveCamera(CameraUpdateFactory.newLatLng(mapsCenter))
 
-                    safeMap.addMarker(
-                            MarkerOptions()
-                                    .position(mapsCenter)
-                                    .icon(homeMarkerDescriptor)
-                    )
+                safeMap.addMarker(
+                        MarkerOptions()
+                                .position(mapsCenter)
+                                .icon(homeMarkerDescriptor)
+                )
 
-                    sensorLocations.forEachIndexed { index, location ->
-                        val markerOp = MarkerOptions()
-                                .position(LatLng(location.latitude, location.longitude))
-                                .icon(sensorMarkerDescriptor)
-                        val marker = safeMap.addMarker(markerOp)
-                        marker.alpha = 0.4f
-                        marker.tag = measurements[index]
-                    }
+                sensorLocations.forEachIndexed { index, location ->
+                    val markerOp = MarkerOptions()
+                            .position(LatLng(location.latitude, location.longitude))
+                            .icon(sensorMarkerDescriptor)
+                    val marker = safeMap.addMarker(markerOp)
+                    marker.alpha = 0.4f
+                    marker.tag = measurements[index]
+                }
 
-                    safeMap.setOnMarkerClickListener { marker ->
-                        marker.alpha = 1.0f
-                        val measurement = marker.tag as? StandardizedMeasurement
-                        measurement?.let {
+                safeMap.setOnMarkerClickListener { marker ->
+                    marker.alpha = 1.0f
+                    val measurement = marker.tag as? StandardizedMeasurement
+                    measurement?.let {
+                        activity?.let { safeActivity ->
                             val mapRipple = MapRipple(
                                     safeMap,
                                     LatLng(measurement.coordinates.lat, measurement.coordinates.lon),
-                                    this@MainActivity
+                                    safeActivity
                             )
                             mapRipple.withStrokeColor(
-                                    ContextCompat.getColor(this@MainActivity, R.color.colorAccent)
+                                    ContextCompat.getColor(safeActivity, R.color.colorAccent)
                             )
                             mapRipple.withStrokewidth(20)
                             mapRipple.withTransparency(0.0f)
@@ -237,8 +254,8 @@ class MainActivity : AppCompatActivity() {
                             }, 2000)
                             displayMeasurementOnTap(measurement)
                             true
-                        } ?: false
-                    }
+                        }
+                    } ?: false
                 }
             }
         }
@@ -246,16 +263,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onUserLocationKnown(location: Location) {
         runOnUiThread {
-            map.getMapAsync { googleMap ->
-                gmap = googleMap
-                gmap?.let { safeMap ->
-                    safeMap.setMinZoomPreference(12.0f)
-                    val mapsCenter = LatLng(location.latitude, location.longitude)
-                    safeMap.moveCamera(CameraUpdateFactory.newLatLng(mapsCenter))
-                }
+            map.getMapAsync { safeMap ->
+                safeMap.setMinZoomPreference(12.0f)
+                val mapsCenter = LatLng(location.latitude, location.longitude)
+                safeMap.moveCamera(CameraUpdateFactory.newLatLng(mapsCenter))
             }
         }
     }
-    */
 
 }

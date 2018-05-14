@@ -18,6 +18,7 @@ import com.funglejunk.airq.util.simpleFold
 import com.funglejunk.airq.util.zipToPair
 import io.reactivex.Flowable
 import io.reactivex.Single
+import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 
 class MainStream(private val permissionListener: RxPermissionListener,
@@ -154,6 +155,8 @@ class MainStream(private val permissionListener: RxPermissionListener,
                     )
                 }
                 .firstOrError()
+                .observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io())
 
     }
 

@@ -3,7 +3,7 @@ package com.funglejunk.airq.view
 import com.funglejunk.airq.model.Location
 import com.funglejunk.airq.model.StandardizedMeasurement
 
-interface MainActivityView {
+interface MainFragmentView {
 
     fun showLoadingAnimation()
 

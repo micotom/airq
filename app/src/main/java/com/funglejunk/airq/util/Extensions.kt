@@ -1,5 +1,6 @@
 package com.funglejunk.airq.util
 
+import android.support.v4.app.Fragment
 import arrow.core.Try
 import com.github.kittinunf.fuel.core.FuelError
 import com.github.kittinunf.fuel.core.Response
@@ -42,3 +43,5 @@ inline fun <T, V> Try<T>.simpleFold(onSuccess: (T) -> Try<V>): Try<V> {
             { onSuccess(it) }
     )
 }
+
+fun Fragment.runOnUiThread(block: () -> Unit) = activity?.runOnUiThread(block)

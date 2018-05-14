@@ -11,6 +11,7 @@ import com.funglejunk.airq.util.MeasurementFormatter
 import com.funglejunk.airq.util.mapToTry
 import com.funglejunk.airq.util.simpleFold
 import io.reactivex.Single
+import io.reactivex.schedulers.Schedulers
 import timber.log.Timber
 
 class AirInfoStream(override val location: Location,
@@ -64,6 +65,7 @@ class AirInfoStream(override val location: Location,
             it.simpleFold {
                 Try.Success(formatter.map(it))
             }
-        }
+        }                .observeOn(Schedulers.io())
+                .subscribeOn(Schedulers.io())
 
 }

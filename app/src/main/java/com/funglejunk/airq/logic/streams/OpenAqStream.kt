@@ -11,6 +11,7 @@ import com.funglejunk.airq.util.MeasurementFormatter
 import com.funglejunk.airq.util.mapToTry
 import com.funglejunk.airq.util.simpleFold
 import io.reactivex.Single
+import io.reactivex.schedulers.Schedulers
 import java.util.*
 
 class OpenAqStream(override val location: Location,
@@ -21,7 +22,7 @@ class OpenAqStream(override val location: Location,
     override fun internalSingle(location: Location): Single<Try<List<Try<StandardizedMeasurement>>>> =
             Single.just(location).flatMap {
                 val now = Calendar.getInstance().time
-                val oneHourBefore = Date(System.currentTimeMillis() - (4 * 3600 * 1000)) // TODO find a better api, results are always outdated ...
+                val oneHourBefore = Date(System.currentTimeMillis() - (18 * 3600 * 1000)) // TODO find a better api, results are always outdated ...
                 openAqClient.getMeasurements(
                         location.latitude, location.longitude, oneHourBefore, now
                 ).map {
@@ -40,7 +41,8 @@ class OpenAqStream(override val location: Location,
                 it.simpleFold {
                     Try.Success(formatter.map(it))
                 }
-            }
+            }                .observeOn(Schedulers.io())
+                    .subscribeOn(Schedulers.io())
 
 
 }

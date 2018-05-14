@@ -1,8 +1,8 @@
 package com.funglejunk.airq
 
 import android.support.multidex.MultiDexApplication
-import com.funglejunk.airq.logic.MainActivityPresenter
 import com.funglejunk.airq.logic.MainActivityPresenterInterface
+import com.funglejunk.airq.logic.MainFragmentPresenter
 import com.funglejunk.airq.logic.location.AndroidGeocoder
 import com.funglejunk.airq.logic.location.AndroidLocationProvider
 import com.funglejunk.airq.logic.location.Geocoder
@@ -27,7 +27,7 @@ class Application : MultiDexApplication() {
         bean { AirNowClient() as AirNowClientInterface }
         bean { AirInfoClient() as AirInfoClientInterface }
         bean { OpenAqClient() as OpenAqClientInterface }
-        bean { params -> MainActivityPresenter(
+        bean { params -> MainFragmentPresenter(
                 // params["activity"],
                 params["permissionListener"],
                 get(parameters = { params.values }),

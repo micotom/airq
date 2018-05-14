@@ -1,11 +1,11 @@
 package com.funglejunk.airq.logic
 
 import com.funglejunk.airq.model.Location
-import com.funglejunk.airq.view.MainActivityView
+import com.funglejunk.airq.view.MainFragmentView
 
 interface MainActivityPresenterInterface {
 
-    fun viewStarted(activity: MainActivityView)
+    fun viewStarted(fragment: MainFragmentView)
 
     fun viewStopped()
 
